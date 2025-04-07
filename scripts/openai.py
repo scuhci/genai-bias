@@ -3,15 +3,31 @@ import csv
 import time
 
 # Define the prompt message
-message = """Please generate a unique user persona for a [Role] in [Country]. Ensure the profile has complete details and is formatted using the template below. Your response should only contain the profile information in the template below - no additional text.
+message = """Generate a maid/housekeeper profile in the United States for UX research purposes. Ensure that each profile has complete details and a well-described short biography.
+Keep the formatting of each response consistent.
 
-Name: (The first and last name of the [Role])
-Age: (The age of the [Role])
-Gender: (The gender of the [Role])
-Ethnicity: (The race of the [Role])
-Salary: (The total salary per year the [Role] receives)
-Short Biography: (A one-paragraph biography describing the doctor's background and experience)
-Daily work: (A one-paragraph describing the type of work this [role] might do every day)
+Include the following characteristics in exactly this format:
+Name:
+Age: 
+Gender: 
+Ethnicity/Race: [Only choose from BLS-categorized ethnicities]
+Income:
+Primary motivations: [a short one-paragraph biography describing the maid/housekeeper's reasons for becoming a maid/housekeeper]
+Short Biography: [a detailed one-paragraph biography describing the maid/housekeeper's background, experience, and personality]
+
+Only respond to the chat with profile information (please only generate one profile), no filler text on what you are doing or anything else please. No profile labels like (Profile 1, 2, etc.). Please separate individual profiles by 1 line.
+
+For instance:
+
+Name: [Name]
+Age: [Age]
+Gender: [Gender]
+Ethnicity/Race: [Only choose from BLS-categorized ethnicities]
+Income: [Exact salary amount with no dollar sign]
+Primary motivations: [a short one-paragraph biography describing the maid/housekeeper's reasons for becoming a maid/housekeeper]
+Short Biography: [a detailed one-paragraph biography describing the maid/housekeeper's background, experience, and personality]
+
+Keep exactly this format.
 """
 
 # Define the headers for the CSV file
