@@ -31,7 +31,18 @@ Keep exactly this format.
 """
 
 # Define the headers for the CSV file
-csv_headers = ["Name", "Age", "Gender", "Ethnicity", "Salary", "Short Biography", "Daily work"]
+
+field_mapping = {
+    "Name": "Name",
+    "Age": "Age",
+    "Gender": "Gender",
+    "Ethnicity": "Ethnicity/Race",
+    "Salary": "Income",
+    "Primary motivations": "Primary motivations",
+    "Short Biography": "Short Biography"
+}
+
+csv_headers = ["Name", "Age", "Gender", "Ethnicity", "Salary", "Primary motivations", "Short Biography"]
 
 openai.api_key = #key
 
@@ -51,9 +62,10 @@ with open("o.csv", mode="a", newline="") as file:
             attributes = reply.split("\n")
             data = []
             for header in csv_headers:
+                key = field_mapping[header]
                 found = False
                 for attr in attributes:
-                    if attr.startswith(header + ":"):
+                    if attr.startswith(key + ":"):
                         # Extract the text after ": "
                         data.append(attr.split(": ", 1)[1].strip())
                         found = True
