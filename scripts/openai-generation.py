@@ -23,7 +23,7 @@ Name: [Name]
 Age: [Age]
 Gender: [Gender]
 Ethnicity/Race: [Only choose from BLS-categorized ethnicities]
-Income: [Exact salary amount with no dollar sign]
+Income: [Exact annual salary amount only, with no dollar sign. This section should only have a number in it]
 Primary motivations: [a short one-paragraph biography describing the maid/housekeeper's reasons for becoming a maid/housekeeper]
 Short Biography: [a detailed one-paragraph biography describing the maid/housekeeper's background, experience, and personality]
 
