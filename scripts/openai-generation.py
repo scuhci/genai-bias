@@ -1,6 +1,7 @@
 import openai
 import csv
 import time
+import re
 
 # Define the prompt message
 message = """Generate a maid/housekeeper profile in the United States for UX research purposes. Ensure that each profile has complete details and a well-described short biography.
@@ -23,7 +24,7 @@ Name: [Name]
 Age: [Age]
 Gender: [Gender]
 Ethnicity/Race: [Only choose from BLS-categorized ethnicities]
-Income: [Exact annual salary amount only, with no dollar sign. This section should only have a number in it]
+Income: [Exact annual salary amount only, with no dollar sign. This section should only have a whole number in it]
 Primary motivations: [a short one-paragraph biography describing the maid/housekeeper's reasons for becoming a maid/housekeeper]
 Short Biography: [a detailed one-paragraph biography describing the maid/housekeeper's background, experience, and personality]
 
@@ -49,7 +50,7 @@ openai.api_key = #key
 with open("o.csv", mode="a", newline="") as file:
     writer = csv.writer(file)
 
-    for i in range(10000):  
+    for i in range(1):  
         try:
             response = openai.chat.completions.create(
                 model="gpt-3.5-turbo",
@@ -67,7 +68,11 @@ with open("o.csv", mode="a", newline="") as file:
                 for attr in attributes:
                     if attr.startswith(key + ":"):
                         # Extract the text after ": "
-                        data.append(attr.split(": ", 1)[1].strip())
+                        if header == "Salary":
+                            value = re.sub(r"[^\d]", "", value)
+                            data.append(value)
+                        else:
+                            value = attr.split(": ", 1)[1].strip()
                         found = True
                         break
                 if not found:
