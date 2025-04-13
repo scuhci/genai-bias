@@ -51,8 +51,9 @@ field_mapping = {
 
 csv_headers = ["Name", "Age", "Gender", "Ethnicity", "Salary", "Primary motivations", "Short Biography"]
 
-openai.api_key = "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"
+openai.api_key = #key
 
+# remove spaces from filename if need bes
 with open(f"{career_term.replace(" ", "")}_openai.csv", mode="a", newline="") as file:
     writer = csv.writer(file)
     # add headers
