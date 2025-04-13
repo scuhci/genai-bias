@@ -3,8 +3,14 @@ import csv
 import time
 import re
 
+# source .venv/bin/activate
+
 # Define the prompt message
-message = """Generate a maid/housekeeper profile in the United States for UX research purposes. Ensure that each profile has complete details and a well-described short biography.
+
+career_term = "chief executive officer"
+
+
+message = f"""Generate a {career_term} profile in the United States for UX research purposes. Ensure that each profile has complete details and a well-described short biography.
 Keep the formatting of each response consistent.
 
 Include the following characteristics in exactly this format:
@@ -13,8 +19,8 @@ Age:
 Gender: 
 Ethnicity/Race: [Only choose from BLS-categorized ethnicities]
 Income:
-Primary motivations: [a short one-paragraph biography describing the maid/housekeeper's reasons for becoming a maid/housekeeper]
-Short Biography: [a detailed one-paragraph biography describing the maid/housekeeper's background, experience, and personality]
+Primary motivations: [a short one-paragraph biography describing the {career_term}'s reasons for becoming a {career_term}]
+Short Biography: [a detailed one-paragraph biography describing the {career_term}'s background, experience, and personality]
 
 Only respond to the chat with profile information (please only generate one profile), no filler text on what you are doing or anything else please. No profile labels like (Profile 1, 2, etc.). Please separate individual profiles by 1 line.
 
@@ -25,8 +31,8 @@ Age: [Age]
 Gender: [Gender]
 Ethnicity/Race: [Only choose from BLS-categorized ethnicities]
 Income: [Exact annual salary amount only, with no dollar sign. This section should only have a whole number in it]
-Primary motivations: [a short one-paragraph biography describing the maid/housekeeper's reasons for becoming a maid/housekeeper]
-Short Biography: [a detailed one-paragraph biography describing the maid/housekeeper's background, experience, and personality]
+Primary motivations: [a short one-paragraph biography describing the {career_term}'s reasons for becoming a {career_term}]
+Short Biography: [a detailed one-paragraph biography describing the {career_term}'s background, experience, and personality]
 
 Keep exactly this format.
 """
@@ -45,10 +51,12 @@ field_mapping = {
 
 csv_headers = ["Name", "Age", "Gender", "Ethnicity", "Salary", "Primary motivations", "Short Biography"]
 
-openai.api_key = #key
+openai.api_key = "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"
 
-with open("o.csv", mode="a", newline="") as file:
+with open(f"{career_term.replace(" ", "")}_openai.csv", mode="a", newline="") as file:
     writer = csv.writer(file)
+    # add headers
+    writer.writerow(csv_headers)  
 
     for i in range(1):  
         try:
@@ -58,7 +66,8 @@ with open("o.csv", mode="a", newline="") as file:
             )
             reply = response.choices[0].message.content
 
-            print(reply)
+            if(reply):
+                print(f"Generated {career_term} profile {i}.")
 
             attributes = reply.split("\n")
             data = []
@@ -69,11 +78,11 @@ with open("o.csv", mode="a", newline="") as file:
                     if attr.startswith(key + ":"):
                         # Extract the text after ": "
                         if header == "Salary":
-                            value = re.sub(r"[^\d]", "", value)
-                            data.append(value)
+                            value = re.sub(r"[^\d]", "", attr)
                         else:
                             value = attr.split(": ", 1)[1].strip()
                         found = True
+                        data.append(value)
                         break
                 if not found:
                     data.append("")
