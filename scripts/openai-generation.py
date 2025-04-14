@@ -54,7 +54,7 @@ csv_headers = ["Name", "Age", "Gender", "Ethnicity", "Salary", "Primary motivati
 openai.api_key = #key
 
 # remove spaces from filename if need bes
-with open(f"{career_term.replace(" ", "")}_openai.csv", mode="a", newline="") as file:
+with open(f"{career_term.replace(' ', '')}_openai.csv", mode="a", newline="") as file:
     writer = csv.writer(file)
     # add headers
     writer.writerow(csv_headers)  
