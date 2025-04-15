@@ -59,7 +59,7 @@ with open(f"{career_term.replace(' ', '')}_openai.csv", mode="a", newline="") as
     # add headers
     writer.writerow(csv_headers)  
 
-    for i in range(1):  
+    for i in range(10000):  
         try:
             response = openai.chat.completions.create(
                 model="gpt-3.5-turbo",
