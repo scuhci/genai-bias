@@ -14,7 +14,7 @@ message = f"""Generate a {career_term} profile in the United States for UX resea
 Keep the formatting of each response consistent.
 
 Include the following characteristics in exactly this format:
-Name:
+Name: [First and last name]
 Age: 
 Gender: 
 Ethnicity/Race: [Only choose from BLS-categorized ethnicities]
@@ -26,7 +26,7 @@ Only respond to the chat with profile information (please only generate one prof
 
 For instance:
 
-Name: [Name]
+Name: [Full name]
 Age: [Age]
 Gender: [Gender]
 Ethnicity/Race: [Only choose from BLS-categorized ethnicities]
