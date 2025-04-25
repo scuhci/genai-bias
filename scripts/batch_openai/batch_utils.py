@@ -110,6 +110,5 @@ def retrieve_results(batch_id):
     else:
         print("Successfully retrieved batch.")
         file_response = client.files.content(batch.output_file_id).content
-        result_fname =  f"../profiles/openai/raw_jsonls/{batch_id}.jsonl"
-        with open(result_fname, 'wb') as file:
+        with open(f'{batch_id}.jsonl', 'wb') as file:
             file.write(file_response)
