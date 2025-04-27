@@ -22,7 +22,7 @@ def main():
 
     print(batch)
 
-    with open("batch_1_id.txt", 'w') as file:
+    with open("../../profiles/openai/jsonls/batch_1_id.txt", 'w') as file:
         file.write(batch.id)
 
 if __name__=="__main__":

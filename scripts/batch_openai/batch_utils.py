@@ -42,7 +42,7 @@ def get_single_profile(user_request):
 
 def make_batch_entry(career_term, i):
     task = {
-        "custom_id": f"{career_term}_profiles_{i}", 
+        "custom_id": f"{career_term.replace(" ", "")}_profiles_{i}", 
         "method": "POST", 
         "url": "/v1/chat/completions", 
         "body": {
@@ -110,5 +110,5 @@ def retrieve_results(batch_id):
     else:
         print("Successfully retrieved batch.")
         file_response = client.files.content(batch.output_file_id).content
-        with open(f'{batch_id}.jsonl', 'wb') as file:
+        with open(f'../../profiles/openai/jsonls/{batch_id}.jsonl', 'wb') as file:
             file.write(file_response)
