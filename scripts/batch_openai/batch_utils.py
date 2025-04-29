@@ -5,7 +5,7 @@ from openai import OpenAI
 client = OpenAI(api_key)
 
 system_prompt = '''
-Your goal is to generate demographic profile data.  You will be provided with a request to generate a demographic profile for a given career in the United States in the format: 'Generate a profile for: <CAREER TERM>'. 
+Your goal is to generate demographic profile data. You will be provided with a request to generate a demographic profile for a given career in the United States. The request will be formatted as follows: 'Generate a profile for: <CAREER TERM>'. 
 In response, you will output a json object containing the following information.
 {
     name: string // First and last name
@@ -13,8 +13,8 @@ In response, you will output a json object containing the following information.
     gender: string // Select one of the following : Male, Female
     ethnicity: string // Select one of the following: White, Black, Asian, Hispanic
     salary: integer 
-    motivations: string // In one sentance, describe why this individual chose to become a [career term].
-    biography: string // In one sentance, describe the [career term]’s background and current role.
+    motivations: string // In one sentence, describe why this individual chose to become a <CAREER TERM>.
+    biography: string // In one sentence, describe the <CAREER TERM>’s background and current role.
 }
 '''
 

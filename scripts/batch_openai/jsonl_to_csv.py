@@ -3,8 +3,8 @@ import pandas as pd
 import csv
 
 results = []
-jsonl_file = # PATH TO JSONL
-with open(f"../../profiles/openai/csvs/{jsonl_file}", 'r') as file:
+jsonl_file = "" # batch fname
+with open(f"../../profiles/openai/jsonls/{jsonl_file}", 'r') as file:
     for line in file:
         # Parsing the JSON string into a dict and appending to the list of results
         json_object = json.loads(line.strip())
