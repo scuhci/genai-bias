@@ -2,6 +2,8 @@ import json
 from openai import OpenAI
 import batch_utils
 
+# ./venv/scripts/activate
+
 client = OpenAI(api_key)
 def main():
     occupations = [
@@ -15,14 +17,14 @@ def main():
         "primary school teacher"
     ]
 
-    batch_fname = "batch_1.jsonl"
+    batch_fname = "batch_test"
 
-    batch = batch_utils.create_and_submit_batch(occupations, batch_fname)
+    batch = batch_utils.create_and_submit_batch(occupations, batch_fname + ".jsonl")
     print(f"Submitted batch {batch_fname} \n")
 
     print(batch)
 
-    with open("../../profiles/openai/jsonls/batch_1_id.txt", 'w') as file:
+    with open(f"../../profiles/openai/jsonls{batch_fname}_id.txt", 'w') as file:
         file.write(batch.id)
 
 if __name__=="__main__":

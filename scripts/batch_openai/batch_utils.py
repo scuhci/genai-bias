@@ -2,7 +2,7 @@
 import json
 from openai import OpenAI
 
-client = OpenAI(api_key)
+client = OpenAI(api_key=)
 
 system_prompt = '''
 Your goal is to generate demographic profile data. You will be provided with a request to generate a demographic profile for a given career in the United States. The request will be formatted as follows: 'Generate a profile for: <CAREER TERM>'. 
@@ -69,7 +69,7 @@ def create_and_submit_batch(occupations, batch_fname):
 
     with open (batch_fname, 'w') as file:
         for career_term in occupations:
-            for i in range(1):
+            for i in range(10):
                 file.write(json.dumps(make_batch_entry(career_term, i+1)) + '\n')
 
     batch_file = client.files.create(
