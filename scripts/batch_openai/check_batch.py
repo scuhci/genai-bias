@@ -1,12 +1,9 @@
 import json
-from openai import OpenAI
 import batch_utils
-
-client = OpenAI(api_key=)
 
 def main():
     batch_id = ""
-    with open("batchid_test.txt", 'r') as file:
+    with open("/home/lonalynn/HCI/genai-bias/profiles/openai/batch_ids/batch_3_compprog_to_bio_id.txt", 'r') as file:
         batch_id = file.readlines()[0]
     
     batch_utils.check_batch(batch_id)

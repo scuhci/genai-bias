@@ -2,7 +2,7 @@
 
 
 ### Before you begin:
-Ensure you set the `apikey` in `batch_utils.py`, `check_batch.py`, `retrieve_save_batch.py`, and `submit_batch.py`.
+Ensure you set the `apikey` in `batch_utils.py`.
 
 Specify career list in `submit_batch.py`. You may also want to change `batch_fname` to your preferred naming convention.
 
