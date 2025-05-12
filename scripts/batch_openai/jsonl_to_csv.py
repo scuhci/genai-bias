@@ -3,7 +3,7 @@ import pandas as pd
 import csv
 
 results = []
-jsonl_file = "batch_681aef1d591481908f6b3aa94e17806a.jsonl" # batch fname
+jsonl_file = "batch_68213a65595c81908738f54f7cfd4848.jsonl" # batch fname
 with open(f"../../profiles/openai/jsonls/{jsonl_file}", 'r') as file:
     for line in file:
         # Parsing the JSON string into a dict and appending to the list of results
@@ -26,23 +26,26 @@ for res in results:
                 headers_written = True
             
             task_id = res['custom_id']
+            try: 
+                result = json.loads(res['response']['body']['choices'][0]['message']['content'])
+                try:
+                    
+                    name = result['name']
+                    age = result['age']
+                    gender = result['gender']
+                    ethnicity = "".join(result['ethnicity'])
+                    salary = result['salary']
+                    motivations = result['motivations']
+                    biography = result['biography']
+                    this_profile = [name, age, gender, ethnicity, salary, motivations, biography]
 
-            result = json.loads(res['response']['body']['choices'][0]['message']['content'])
-
-            try:
-                name = result['name']
-                age = result['age']
-                gender = result['gender']
-                ethnicity = "".join(result['ethnicity'])
-                salary = result['salary']
-                motivations = result['motivations']
-                biography = result['biography']
-                this_profile = [name, age, gender, ethnicity, salary, motivations, biography]
-
-                writer.writerow(this_profile)
-            except:
-                print("Missing key. This profile: ")
-                print(result)
+                    writer.writerow(this_profile)
+                except:
+                    print("Error processing this profile: ")
+                    print(result)
+            except Exception as e: 
+                print("Error loading:")
+                print(e)
     else:
         print(f"Parsing results for: {current_career_term}\n")
         prev_career_term = current_career_term
@@ -69,5 +72,5 @@ for res in results:
 
                 writer.writerow(this_profile)
             except:
-                print("Missing key. This profile: ")
+                print("Error processing this profile: ")
                 print(result)
