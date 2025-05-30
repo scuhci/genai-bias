@@ -101,8 +101,6 @@ for career_profiles in os.listdir(dir_path):
 
   fig.write_image(f"overunder-openai/{this_career_term}.png")
 
-  import plotly.express as px
-
   cmp = (
       genai_race_df
         .merge(this_career_baseline_df,
@@ -141,7 +139,7 @@ for career_profiles in os.listdir(dir_path):
       mode="markers+text",
       name="BLS",
       text=cmp["percent_baseline"].map(lambda x: f"{x:.1f}%"),
-      textposition="top center",
+      textposition="middle right",
       marker=dict(symbol="circle", size=10)
   ))
 
@@ -163,7 +161,7 @@ for career_profiles in os.listdir(dir_path):
       xaxis_title="Ethnicity",
       yaxis_title="Percent",
       legend_title="Dataset",
-      width=800, height=800
+      width=1000, height=800
   )
 
   fig.write_image(f"diffchart-openai/{this_career_term}.png")
