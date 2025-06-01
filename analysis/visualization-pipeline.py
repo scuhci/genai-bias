@@ -33,15 +33,30 @@ for career_profiles in os.listdir(dir_path):
         .rename(columns=lambda c: c.replace("p_",""))  # drop the "p_" prefix
         .melt(var_name="ethnicity", value_name="percent")
   )
+
+  print("Baseline Ethnicity Data")
+  print(this_career_baseline_race_df)
       
-  genai_race_df = (
+  # merge any multi (i.e. hispanic, white) -> be included in both categories.
+  merge_races = (
       genai_data["ethnicity"]
         .str.lower()
-        .value_counts(normalize=True)   # proportions
-        .mul(100)                       # → percentages
-        .reset_index(name="percent")    # make it a DF with column “percent”
-        .rename(columns={"index":"ethnicity"})
-  )
+        .str.split(",", expand=False)          # e.g. ["hispanic", " white"]
+        .apply(lambda lst: [x.strip() for x in lst])  
+        .explode()                              # now one ethnicity per row
+    )
+    
+  genai_race_df = (
+        merge_races
+          .str.lower()
+          .value_counts(normalize=True)   # proportions
+          .mul(100)                       # → percentages
+          .reset_index(name="percent")    # make it a DF with column “percent”
+          .rename(columns={"index":"ethnicity"})
+    )
+
+  print("GenAI Ethnicity Data") 
+  print(genai_race_df)
 
   race_diff_df = (
       genai_race_df
@@ -58,15 +73,13 @@ for career_profiles in os.listdir(dir_path):
   # gender percentages DF
   this_career_baseline_gender_df = (
     this_career_baseline_df
-      # 1) keep only the p_women column
       .loc[:, ["p_women"]]
-      # 2) create p_men = 100 − p_women
       .assign(p_men=lambda df: 100 - df["p_women"])
-      # 3) drop the “p_” prefix from both columns → { "women":…, "men":… }
       .rename(columns={"p_women": "female", "p_men": "male"})
-      # 4) melt into two rows: gender vs. percent
       .melt(var_name="gender", value_name="percent")
   )
+  print("Baseline Gender Data") 
+  print(this_career_baseline_gender_df)
 
   genai_gender_df = (
       genai_data["gender"]
@@ -77,6 +90,8 @@ for career_profiles in os.listdir(dir_path):
         .rename(columns={"index":"gender"})
   )
 
+  print("GenAI Gender Data") 
+  print(genai_gender_df)
   gender_diff_df = (
       genai_gender_df
         .merge(this_career_baseline_gender_df,
@@ -170,6 +185,7 @@ for career_profiles in os.listdir(dir_path):
       mode="markers+text",
       name="BLS",
       text=cmp["percent_baseline"].map(lambda x: f"{x:.1f}%"),
+      textfont=dict(color="blue"), 
       textposition="middle right",
       marker=dict(symbol="circle", size=10)
   ))
@@ -181,7 +197,8 @@ for career_profiles in os.listdir(dir_path):
       mode="markers+text",
       name="GenAI",
       text=cmp["percent_genai"].map(lambda x: f"{x:.1f}%"),
-      textposition="bottom center",
+      textposition="middle left",
+      textfont=dict(color="red"), 
       marker=dict(symbol="square", size=10)
   ))
 
@@ -255,7 +272,7 @@ for career_profiles in os.listdir(dir_path):
           suffixes=("_genai","_baseline")
       )
       .fillna(0)    # missing → 0%
- )
+  )
 
   # keep consistent order 
   order = ["female", "male"]
@@ -263,8 +280,7 @@ for career_profiles in os.listdir(dir_path):
     cmp_gender["gender"],
     categories=order,
     ordered=True
- )
-  print(cmp_gender)
+  )
   #compute error‐bar extents
   cmp_gender["err_up"]   = (cmp_gender["percent_genai"] - cmp_gender["percent_baseline"]).clip(lower=0)
   cmp_gender["err_down"] = (cmp_gender["percent_baseline"] - cmp_gender["percent_genai"]).clip(lower=0)
@@ -284,18 +300,20 @@ for career_profiles in os.listdir(dir_path):
     mode="markers+text",
     name="BLS Baseline",
     text=cmp_gender["percent_baseline"].map(lambda x: f"{x:.1f}%"),
+    textfont=dict(color="blue"), 
     textposition="middle right",
     marker=dict(symbol="circle", size=10)
   ))
 
-# 4b) GenAI points + value labels
+  # 4b) GenAI points + value labels
   fig.add_trace(go.Scatter(
     x=cmp_gender["gender"],
     y=cmp_gender["percent_genai"],
     mode="markers+text",
     name="GenAI",
     text=cmp_gender["percent_genai"].map(lambda x: f"{x:.1f}%"),
-    textposition="bottom center",
+    textposition="middle left",
+    textfont=dict(color="red"), 
     marker=dict(symbol="square", size=10)
   ))
   fig.update_yaxes(tickformat=",.1f%", ticksuffix="%")
@@ -305,14 +323,14 @@ for career_profiles in os.listdir(dir_path):
     yaxis_title="Percent",
     legend_title="Dataset",
     width=1000, height=800
- )
+  )
 
   fig.write_image(f"diffchart-openai/{this_career_term}-gender.png")
   print(f"Saved gender diff chart for: {this_career_term}")
   '''
   =============================================================
   '''
-  
+
   # Split full names into first/last
   split_names = genai_data["name"].str.split(expand=True)
   first_names = split_names[0]
@@ -339,9 +357,9 @@ for career_profiles in os.listdir(dir_path):
   )
   fig_first.write_image(f"first-name-tables/{this_career_term}.png", width=800, height=800)
 
-# 5. Generate a Plotly table for top 5 last name counts
+  # 5. Generate a Plotly table for top 5 last name counts
   fig_last = go.Figure(data=[
-     go.Table(
+      go.Table(
         header=dict(values=list(last_counts.columns), fill_color='lightgrey'),
         cells=dict(values=[last_counts["Last Name"], last_counts["Count"], first_counts["Percent of Dataset"]])
     )
@@ -356,7 +374,7 @@ for career_profiles in os.listdir(dir_path):
 
   print(f"Saved top 5 first-name counts table for: {this_career_term}")
   print(f"Saved top 5 last-name counts table for: {this_career_term}")
-  
+
   # Word clouds
   # 2. Flatten into a single list of first and last names
   words = split_names.stack().tolist()
@@ -378,4 +396,3 @@ for career_profiles in os.listdir(dir_path):
   )
   fig.write_image(f"wordcloud-openai/{this_career_term}.png")
   print(f"Saved word cloud for: {this_career_term}")
-
