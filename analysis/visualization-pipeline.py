@@ -20,21 +20,20 @@ for career_profiles in os.listdir(dir_path):
 
   # get baseline data
   this_career_term = career_profiles.split("profiles_openai.csv")[0]
-  print(this_career_term)
+  print("Generating visualizations for... " + this_career_term)
   # this_career_term = "biologist"
   this_career_baseline_df = baselines_data[baselines_data["genai_bias_search_term"] == this_career_term]
-  print(this_career_baseline_df)
 
   eth_cols = ["p_white","p_black","p_asian","p_hispanic"]
 
-  # tidy her into a nice little array
-  this_career_baseline_df = (
-      this_career_baseline_df[eth_cols]                                 # pick only the pct columns
-        .rename(columns=lambda c: c.replace("p_",""))  # optional: drop the "p_" prefix
+  # race percentages DF
+
+  this_career_baseline_race_df = (
+      this_career_baseline_df[eth_cols]
+        .rename(columns=lambda c: c.replace("p_",""))  # drop the "p_" prefix
         .melt(var_name="ethnicity", value_name="percent")
   )
       
-  # get the gender and race percentages into arrays
   genai_race_df = (
       genai_data["ethnicity"]
         .str.lower()
@@ -44,7 +43,31 @@ for career_profiles in os.listdir(dir_path):
         .rename(columns={"index":"ethnicity"})
   )
 
-  # 2) gender percentages DF
+  race_diff_df = (
+      genai_race_df
+        .merge(this_career_baseline_race_df,
+              on="ethnicity",
+              how="outer",
+              suffixes=("_genai", "_baseline"))
+        .fillna({"percent_genai": 0, "percent_baseline": 0})
+        .assign(difference=lambda df: 
+                  df["percent_genai"] - df["percent_baseline"])
+        [["ethnicity", "difference"]]
+  )
+
+  # gender percentages DF
+  this_career_baseline_gender_df = (
+    this_career_baseline_df
+      # 1) keep only the p_women column
+      .loc[:, ["p_women"]]
+      # 2) create p_men = 100 − p_women
+      .assign(p_men=lambda df: 100 - df["p_women"])
+      # 3) drop the “p_” prefix from both columns → { "women":…, "men":… }
+      .rename(columns={"p_women": "female", "p_men": "male"})
+      # 4) melt into two rows: gender vs. percent
+      .melt(var_name="gender", value_name="percent")
+  )
+
   genai_gender_df = (
       genai_data["gender"]
         .str.lower()   
@@ -54,123 +77,287 @@ for career_profiles in os.listdir(dir_path):
         .rename(columns={"index":"gender"})
   )
 
-  # diff_df = (
-  #     genai_race_df
-  #       .merge(this_career_baseline_df,
-  #             on="ethnicity",
-  #             how="outer",
-  #             suffixes=("_genai", "_baseline"))
-  #       .fillna({"percent_genai": 0, "percent_baseline": 0})
-  #       .assign(difference=lambda df: 
-  #                 df["percent_genai"] - df["percent_baseline"])
-  #       [["ethnicity", "difference"]]
-  # )
+  gender_diff_df = (
+      genai_gender_df
+        .merge(this_career_baseline_gender_df,
+              on="gender",
+              how="outer",
+              suffixes=("_genai", "_baseline"))
+        .fillna({"percent_genai": 0, "percent_baseline": 0})
+        .assign(difference=lambda df: 
+                  df["percent_genai"] - df["percent_baseline"])
+        [["gender", "difference"]]
+  )
+  '''
+  Ethnicity visualizations
+  =============================================================
+  '''
+  main_eth = ["white", "black", "hispanic", "asian"]
 
-  # print(diff_df)
-      
-  # # 1) define your main categories
-  # main_eth = ["white", "black", "hispanic", "asian"]
+  # filter race_diff_df
+  plot_df = race_diff_df[race_diff_df["ethnicity"].isin(main_eth)]
 
-  # # 2) filter diff_df
-  # plot_df = diff_df[diff_df["ethnicity"].isin(main_eth)]
+  # enforce a specific order
+  plot_df["ethnicity"] = pd.Categorical(
+      plot_df["ethnicity"],
+      categories=main_eth,
+      ordered=True
+  )
+  '''
+  1. Over-under bar charts
+  '''
+  # build the over–under bar chart
+  fig = px.bar(
+      plot_df,
+      x="ethnicity",
+      y="difference",
+      color="difference",
+      color_continuous_scale=["#d62728","#1fb451"],
+      category_orders={"ethnicity": main_eth},
+      labels={"difference":"% Deviation from BLS Baseline"},
+      title=f"GPT 4.0 vs BLS Baselines - Ethnicity Distributions <br> Career Term: {this_career_term}"
+  )
 
-  # # 3) (optional) enforce a specific order
-  # plot_df["ethnicity"] = pd.Categorical(
-  #     plot_df["ethnicity"],
-  #     categories=main_eth,
-  #     ordered=True
-  # )
+  fig.update_layout(coloraxis_showscale=False)
+  # format axis and add zero line
+  fig.update_yaxes(tickformat=",.1f%", ticksuffix="%")
+  fig.update_layout(shapes=[dict(
+      type="line", x0=-0.5, x1=len(plot_df)-0.5,
+      y0=0, y1=0, line=dict(color="black", dash="dash")
+  )])
 
-  # # 4) build the over–under bar chart
-  # fig = px.bar(
-  #     plot_df,
-  #     x="ethnicity",
-  #     y="difference",
-  #     color="difference",
-  #     color_continuous_scale=["#d62728","#1fb451"],
-  #     category_orders={"ethnicity": main_eth},
-  #     labels={"difference":"% Deviation from BLS Baseline"},
-  #     title=f"GenAI vs BLS Baselines - Racial And Gender Distributions <br> Career Term: {this_career_term}"
-  # )
+  print(f"Saved ethnicity over-under bar chart for: {this_career_term}")
+  fig.write_image(f"overunder-openai/{this_career_term}-eth.png")
 
-  # fig.update_layout(coloraxis_showscale=False)
-  # # format axis and add zero line
-  # fig.update_yaxes(tickformat=",.1f%", ticksuffix="%")
-  # fig.update_layout(shapes=[dict(
-  #     type="line", x0=-0.5, x1=len(plot_df)-0.5,
-  #     y0=0, y1=0, line=dict(color="black", dash="dash")
-  # )])
+  '''
+  2. Diff Charts
+  These are fancy error plots.
+  '''
+  cmp = (
+      genai_race_df
+        .merge(this_career_baseline_race_df,
+              on="ethnicity",
+              how="outer",
+              suffixes=("_genai","_baseline"))
+        .fillna(0)    # missing → 0%
+  )
 
-  # fig.write_image(f"overunder-openai/{this_career_term}.png")
+  cmp = cmp[cmp["ethnicity"].isin(main_eth)]
 
-  # cmp = (
-  #     genai_race_df
-  #       .merge(this_career_baseline_df,
-  #             on="ethnicity",
-  #             how="outer",
-  #             suffixes=("_genai","_baseline"))
-  #       .fillna(0)    # missing → 0%
-  # )
-  # print(cmp)
+  cmp["ethnicity"] = pd.Categorical(
+      cmp["ethnicity"],
+      categories=main_eth,
+      ordered=True
+  )
 
-  # cmp = cmp[cmp["ethnicity"].isin(main_eth)]
+  #compute error‐bar extents
+  cmp["err_up"]   = (cmp["percent_genai"]    - cmp["percent_baseline"]).clip(lower=0)
+  cmp["err_down"] = (cmp["percent_baseline"] - cmp["percent_genai"]   ).clip(lower=0)
 
-  # cmp["ethnicity"] = pd.Categorical(
-  #     cmp["ethnicity"],
-  #     categories=main_eth,
-  #     ordered=True
-  # )
+  fig = go.Figure()
 
-  # # 2) compute error‐bar extents
-  # cmp["err_up"]   = (cmp["percent_genai"]    - cmp["percent_baseline"]).clip(lower=0)
-  # cmp["err_down"] = (cmp["percent_baseline"] - cmp["percent_genai"]   ).clip(lower=0)
+  # BLS (baseline) points + asymmetric error bars + labels
+  fig.add_trace(go.Scatter(
+      x=cmp["ethnicity"],
+      y=cmp["percent_baseline"],
+      error_y=dict(
+          type="data",
+          array=cmp["err_up"],
+          arrayminus=cmp["err_down"],
+          thickness=1.5,
+          width=3
+      ),
+      mode="markers+text",
+      name="BLS",
+      text=cmp["percent_baseline"].map(lambda x: f"{x:.1f}%"),
+      textposition="middle right",
+      marker=dict(symbol="circle", size=10)
+  ))
 
-  # fig = go.Figure()
+  # GenAI points + labels
+  fig.add_trace(go.Scatter(
+      x=cmp["ethnicity"],
+      y=cmp["percent_genai"],
+      mode="markers+text",
+      name="GenAI",
+      text=cmp["percent_genai"].map(lambda x: f"{x:.1f}%"),
+      textposition="bottom center",
+      marker=dict(symbol="square", size=10)
+  ))
 
-  # # 1) BLS (baseline) points + asymmetric error bars + labels
-  # fig.add_trace(go.Scatter(
-  #     x=cmp["ethnicity"],
-  #     y=cmp["percent_baseline"],
-  #     error_y=dict(
-  #         type="data",
-  #         array=cmp["err_up"],
-  #         arrayminus=cmp["err_down"],
-  #         thickness=1.5,
-  #         width=3
-  #     ),
-  #     mode="markers+text",
-  #     name="BLS",
-  #     text=cmp["percent_baseline"].map(lambda x: f"{x:.1f}%"),
-  #     textposition="middle right",
-  #     marker=dict(symbol="circle", size=10)
-  # ))
+  # Layout tweaks
+  fig.update_yaxes(tickformat=",.1f%", ticksuffix="%")
+  fig.update_layout(
+      title=f"GPT 4.0 vs BLS Baselines -  Ethnicity Distributions <br> Career Term: {this_career_term}",
+      xaxis_title="Ethnicity",
+      yaxis_title="Percent",
+      legend_title="Dataset",
+      width=1000, height=800
+  )
 
-  # # 2) GenAI points + labels
-  # fig.add_trace(go.Scatter(
-  #     x=cmp["ethnicity"],
-  #     y=cmp["percent_genai"],
-  #     mode="markers+text",
-  #     name="GenAI",
-  #     text=cmp["percent_genai"].map(lambda x: f"{x:.1f}%"),
-  #     textposition="bottom center",
-  #     marker=dict(symbol="square", size=10)
-  # ))
+  fig.write_image(f"diffchart-openai/{this_career_term}-eth.png")
+  print(f"Saved ethnicity diff chart for: {this_career_term}")
+  '''
+  =============================================================
+  '''
+  '''
+  Gender visualizations
+  =============================================================
+  '''
 
-  # # 3) Layout tweaks
-  # fig.update_yaxes(tickformat=",.1f%", ticksuffix="%")
-  # fig.update_layout(
-  #     title=f"GenAI vs BLS Baselines -  Racial And Gender Distributions <br> Career Term: {this_career_term}",
-  #     xaxis_title="Ethnicity",
-  #     yaxis_title="Percent",
-  #     legend_title="Dataset",
-  #     width=1000, height=800
-  # )
+  gender = ["male", "female"]
 
-  # fig.write_image(f"diffchart-openai/{this_career_term}.png")
+  # filter gender_diff_df
+  plot_df = gender_diff_df[gender_diff_df["gender"].isin(gender)]
+
+  # enforce a specific order
+  plot_df["gender"] = pd.Categorical(
+      plot_df["gender"],
+      categories=gender,
+      ordered=True
+  )
+  '''
+  1. Over-under bar charts
+  '''
+  # build the over–under bar chart
+  fig = px.bar(
+      plot_df,
+      x="gender",
+      y="difference",
+      color="difference",
+      color_continuous_scale=["#d62728","#1fb451"],
+      category_orders={"gender": gender},
+      labels={"difference":"% Deviation from BLS Baseline"},
+      title=f"GPT 4.0 vs BLS Baselines - Gender Distributions <br> Career Term: {this_career_term}"
+  )
+
+  fig.update_layout(coloraxis_showscale=False)
+  # format axis and add zero line
+  fig.update_yaxes(tickformat=",.1f%", ticksuffix="%")
+  fig.update_layout(shapes=[dict(
+      type="line", x0=-0.5, x1=len(plot_df)-0.5,
+      y0=0, y1=0, line=dict(color="black", dash="dash")
+  )])
+
+  print(f"Saved gender over-under bar chart for: {this_career_term}")
+  fig.write_image(f"overunder-openai/{this_career_term}-gender.png")
+
+  '''
+  2. Diff Charts
+  These are fancy error plots.
+  '''
+  cmp_gender = (
+    genai_gender_df
+      .merge(
+          this_career_baseline_gender_df,
+          on="gender",
+          how="outer",
+          suffixes=("_genai","_baseline")
+      )
+      .fillna(0)    # missing → 0%
+ )
+
+  # keep consistent order 
+  order = ["female", "male"]
+  cmp_gender["gender"] = pd.Categorical(
+    cmp_gender["gender"],
+    categories=order,
+    ordered=True
+ )
+  print(cmp_gender)
+  #compute error‐bar extents
+  cmp_gender["err_up"]   = (cmp_gender["percent_genai"] - cmp_gender["percent_baseline"]).clip(lower=0)
+  cmp_gender["err_down"] = (cmp_gender["percent_baseline"] - cmp_gender["percent_genai"]).clip(lower=0)
+  fig = go.Figure()
+
+  # BLS (baseline) points + asymmetric error bars + labels
+  fig.add_trace(go.Scatter(
+    x=cmp_gender["gender"],
+    y=cmp_gender["percent_baseline"],
+    error_y=dict(
+        type="data",
+        array=cmp_gender["err_up"],
+        arrayminus=cmp_gender["err_down"],
+        thickness=1.5,
+        width=3
+    ),
+    mode="markers+text",
+    name="BLS Baseline",
+    text=cmp_gender["percent_baseline"].map(lambda x: f"{x:.1f}%"),
+    textposition="middle right",
+    marker=dict(symbol="circle", size=10)
+  ))
+
+# 4b) GenAI points + value labels
+  fig.add_trace(go.Scatter(
+    x=cmp_gender["gender"],
+    y=cmp_gender["percent_genai"],
+    mode="markers+text",
+    name="GenAI",
+    text=cmp_gender["percent_genai"].map(lambda x: f"{x:.1f}%"),
+    textposition="bottom center",
+    marker=dict(symbol="square", size=10)
+  ))
+  fig.update_yaxes(tickformat=",.1f%", ticksuffix="%")
+  fig.update_layout(
+    title=f"GPT 4.0 vs BLS Baselines - Gender Distributions <br> Career Term: {this_career_term}",
+    xaxis_title="Gender",
+    yaxis_title="Percent",
+    legend_title="Dataset",
+    width=1000, height=800
+ )
+
+  fig.write_image(f"diffchart-openai/{this_career_term}-gender.png")
+  print(f"Saved gender diff chart for: {this_career_term}")
+  '''
+  =============================================================
+  '''
   
-  # 1. Split full names into first and last names
+  # Split full names into first/last
   split_names = genai_data["name"].str.split(expand=True)
+  first_names = split_names[0]
+  last_names = split_names[1]
+  first_counts = first_names.value_counts().head(5).reset_index()
+  first_counts.columns = ["First Name", "Count"]
+  total_first = len(first_names)
+  first_counts["Percent of Dataset"] =(first_counts["Count"] / total_first * 100).round(1)
 
+  last_counts = last_names.value_counts().head(5).reset_index()
+  last_counts.columns = ["Last Name", "Count"]
+  total_last = len(last_names)
+  last_counts["Percent of Dataset"] =(last_counts["Count"] / total_last * 100).round(1)
+  fig_first = go.Figure(data=[
+    go.Table(
+        header=dict(values=list(first_counts.columns), fill_color='lightgrey'),
+        cells=dict(values=[first_counts["First Name"], first_counts["Count"], first_counts["Percent of Dataset"]])
+    )
+  ])
+  fig_first.update_layout(
+    title_text=f"5 Most Frequent First Names: GPT 4.0 <br> Career Term: {this_career_term}",
+    title_x=0.5,                  # centers the title
+    margin=dict(t=80, b=100)       # add a bit of top margin so title isn’t too close
+  )
+  fig_first.write_image(f"first-name-tables/{this_career_term}.png", width=800, height=800)
+
+# 5. Generate a Plotly table for top 5 last name counts
+  fig_last = go.Figure(data=[
+     go.Table(
+        header=dict(values=list(last_counts.columns), fill_color='lightgrey'),
+        cells=dict(values=[last_counts["Last Name"], last_counts["Count"], first_counts["Percent of Dataset"]])
+    )
+  ])
+  fig_last.update_layout(
+    title_text=f"5 Most Frequent Last Names: GPT 4.0 <br> Career Term: {this_career_term}",
+    title_x=0.5,                  # centers the title
+    margin=dict(t=80, b=40)       # add a bit of top margin so title isn’t too close
+  )
+  fig_last.write_image(f"last-name-tables/{this_career_term}.png", width=800, height=800)
+
+
+  print(f"Saved top 5 first-name counts table for: {this_career_term}")
+  print(f"Saved top 5 last-name counts table for: {this_career_term}")
+  
+  # Word clouds
   # 2. Flatten into a single list of first and last names
   words = split_names.stack().tolist()
 
@@ -190,4 +377,5 @@ for career_profiles in os.listdir(dir_path):
       margin=dict(l=0, r=0, t=40, b=0)
   )
   fig.write_image(f"wordcloud-openai/{this_career_term}.png")
+  print(f"Saved word cloud for: {this_career_term}")
 
