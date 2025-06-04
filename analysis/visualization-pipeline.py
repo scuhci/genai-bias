@@ -127,7 +127,7 @@ for career_profiles in os.listdir(dir_path):
       x="ethnicity",
       y="difference",
       color="difference",
-      color_continuous_scale=["#d62728","#1fb451"],
+      color_continuous_scale=["#d62728","#1f47b4"],
       category_orders={"ethnicity": main_eth},
       labels={"difference":"% Deviation from BLS Baseline"},
       title=f"GPT 4.0 vs BLS Baselines - Ethnicity Distributions <br> Career Term: {this_career_term}"
@@ -145,75 +145,48 @@ for career_profiles in os.listdir(dir_path):
   fig.write_image(f"overunder-openai/{this_career_term}-eth.png")
 
   '''
-  2. Diff Charts
+  2. Double Bar Charts
   These are fancy error plots.
   '''
-  cmp = (
-      genai_race_df
-        .merge(this_career_baseline_race_df,
-              on="ethnicity",
-              how="outer",
-              suffixes=("_genai","_baseline"))
-        .fillna(0)    # missing → 0%
+  eth_merge = (
+    this_career_baseline_race_df
+      .merge(
+          genai_race_df,
+          on="ethnicity",
+          how="outer"
+      )
+      .fillna(0)
+      .rename(columns={
+          "percent_x": "percent_baseline",
+          "percent_y": "percent_genai"
+      })
+    )
+  print(eth_merge)
+  fig_eth = px.bar(
+      eth_merge,
+      x="ethnicity",
+      y=["percent_baseline","percent_genai"],
+      labels={
+          "value": "% of Sample",
+          "variable": "Source"
+      },
+      title=f"GPT 4.0 vs. BLS Baselines: Ethnicity <br> Career Term: {this_career_term}",
+      barmode="group",           # side–by–side bars
+      category_orders={"ethnicity": ["white","black","asian","hispanic"]}
   )
 
-  cmp = cmp[cmp["ethnicity"].isin(main_eth)]
-
-  cmp["ethnicity"] = pd.Categorical(
-      cmp["ethnicity"],
-      categories=main_eth,
-      ordered=True
+  fig_eth.update_traces(
+      marker_line_width=0.5,
+      marker_line_color="black"
+  )
+  fig_eth.update_yaxes(tickformat=",.1f%", ticksuffix="%")
+  fig_eth.update_layout(
+      legend_title_text="Data Source",
+      width=800, height=500
   )
 
-  #compute error‐bar extents
-  cmp["err_up"]   = (cmp["percent_genai"]    - cmp["percent_baseline"]).clip(lower=0)
-  cmp["err_down"] = (cmp["percent_baseline"] - cmp["percent_genai"]   ).clip(lower=0)
-
-  fig = go.Figure()
-
-  # BLS (baseline) points + asymmetric error bars + labels
-  fig.add_trace(go.Scatter(
-      x=cmp["ethnicity"],
-      y=cmp["percent_baseline"],
-      error_y=dict(
-          type="data",
-          array=cmp["err_up"],
-          arrayminus=cmp["err_down"],
-          thickness=1.5,
-          width=3
-      ),
-      mode="markers+text",
-      name="BLS",
-      text=cmp["percent_baseline"].map(lambda x: f"{x:.1f}%"),
-      textfont=dict(color="blue"), 
-      textposition="middle right",
-      marker=dict(symbol="circle", size=10)
-  ))
-
-  # GenAI points + labels
-  fig.add_trace(go.Scatter(
-      x=cmp["ethnicity"],
-      y=cmp["percent_genai"],
-      mode="markers+text",
-      name="GenAI",
-      text=cmp["percent_genai"].map(lambda x: f"{x:.1f}%"),
-      textposition="middle left",
-      textfont=dict(color="red"), 
-      marker=dict(symbol="square", size=10)
-  ))
-
-  # Layout tweaks
-  fig.update_yaxes(tickformat=",.1f%", ticksuffix="%")
-  fig.update_layout(
-      title=f"GPT 4.0 vs BLS Baselines -  Ethnicity Distributions <br> Career Term: {this_career_term}",
-      xaxis_title="Ethnicity",
-      yaxis_title="Percent",
-      legend_title="Dataset",
-      width=1000, height=800
-  )
-
-  fig.write_image(f"diffchart-openai/{this_career_term}-eth.png")
-  print(f"Saved ethnicity diff chart for: {this_career_term}")
+  fig_eth.write_image(f"dbarchart-openai/{this_career_term}-eth.png")
+  print(f"Saved gender double bar chart for: {this_career_term}")
   '''
   =============================================================
   '''
@@ -242,7 +215,7 @@ for career_profiles in os.listdir(dir_path):
       x="gender",
       y="difference",
       color="difference",
-      color_continuous_scale=["#d62728","#1fb451"],
+      color_continuous_scale=["#d62728","#1f77b4"],
       category_orders={"gender": gender},
       labels={"difference":"% Deviation from BLS Baseline"},
       title=f"GPT 4.0 vs BLS Baselines - Gender Distributions <br> Career Term: {this_career_term}"
@@ -260,73 +233,49 @@ for career_profiles in os.listdir(dir_path):
   fig.write_image(f"overunder-openai/{this_career_term}-gender.png")
 
   '''
-  2. Diff Charts
-  These are fancy error plots.
+  2. Double Bar charts
   '''
-  cmp_gender = (
-    genai_gender_df
+  gender_merge = (
+    this_career_baseline_gender_df
       .merge(
-          this_career_baseline_gender_df,
+          genai_gender_df,
           on="gender",
-          how="outer",
-          suffixes=("_genai","_baseline")
+          how="outer"
       )
-      .fillna(0)    # missing → 0%
+      .fillna(0)
+      .rename(columns={
+          "percent_x": "percent_baseline",
+          "percent_y": "percent_genai"
+      })
+  )
+  print(gender_merge)
+
+  # -- 4d) Plot grouped bar chart for gender
+  fig_gen = px.bar(
+      gender_merge,
+      x="gender",
+      y=["percent_baseline","percent_genai"],
+      labels={
+          "value": "% of Sample",
+          "variable": "Source"
+      },
+      title=f"GPT 4.0 vs. BLS Baselines: Gender <br> Career Term: {this_career_term}",
+      barmode="group",
+      category_orders={"gender": ["female", "male"]},
   )
 
-  # keep consistent order 
-  order = ["female", "male"]
-  cmp_gender["gender"] = pd.Categorical(
-    cmp_gender["gender"],
-    categories=order,
-    ordered=True
+  fig_gen.update_traces(
+      marker_line_width=0.5,
+      marker_line_color="black"
   )
-  #compute error‐bar extents
-  cmp_gender["err_up"]   = (cmp_gender["percent_genai"] - cmp_gender["percent_baseline"]).clip(lower=0)
-  cmp_gender["err_down"] = (cmp_gender["percent_baseline"] - cmp_gender["percent_genai"]).clip(lower=0)
-  fig = go.Figure()
-
-  # BLS (baseline) points + asymmetric error bars + labels
-  fig.add_trace(go.Scatter(
-    x=cmp_gender["gender"],
-    y=cmp_gender["percent_baseline"],
-    error_y=dict(
-        type="data",
-        array=cmp_gender["err_up"],
-        arrayminus=cmp_gender["err_down"],
-        thickness=1.5,
-        width=3
-    ),
-    mode="markers+text",
-    name="BLS Baseline",
-    text=cmp_gender["percent_baseline"].map(lambda x: f"{x:.1f}%"),
-    textfont=dict(color="blue"), 
-    textposition="middle right",
-    marker=dict(symbol="circle", size=10)
-  ))
-
-  # 4b) GenAI points + value labels
-  fig.add_trace(go.Scatter(
-    x=cmp_gender["gender"],
-    y=cmp_gender["percent_genai"],
-    mode="markers+text",
-    name="GenAI",
-    text=cmp_gender["percent_genai"].map(lambda x: f"{x:.1f}%"),
-    textposition="middle left",
-    textfont=dict(color="red"), 
-    marker=dict(symbol="square", size=10)
-  ))
-  fig.update_yaxes(tickformat=",.1f%", ticksuffix="%")
-  fig.update_layout(
-    title=f"GPT 4.0 vs BLS Baselines - Gender Distributions <br> Career Term: {this_career_term}",
-    xaxis_title="Gender",
-    yaxis_title="Percent",
-    legend_title="Dataset",
-    width=1000, height=800
+  fig_gen.update_yaxes(tickformat=",.1f%", ticksuffix="%")
+  fig_gen.update_layout(
+      legend_title_text="Data Source",
+      width=600, height=400
   )
-
-  fig.write_image(f"diffchart-openai/{this_career_term}-gender.png")
-  print(f"Saved gender diff chart for: {this_career_term}")
+  
+  fig_gen.write_image(f"dbarchart-openai/{this_career_term}-gender.png")
+  print(f"Saved gender double bar chart for: {this_career_term}")
   '''
   =============================================================
   '''
