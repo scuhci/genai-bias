@@ -127,15 +127,22 @@ for career_profiles in os.listdir(dir_path):
       x="ethnicity",
       y="difference",
       color="difference",
-      color_continuous_scale=["#d62728","#1f47b4"],
+      color_continuous_scale=["#d62728","#1f77b4"],
       category_orders={"ethnicity": main_eth},
       labels={"difference":"% Deviation from BLS Baseline"},
       title=f"GPT 4.0 vs BLS Baselines - Ethnicity Distributions <br> Career Term: {this_career_term}"
   )
 
+  fig.update_traces(
+    marker_line_width=0.5,
+    marker_line_color="black",
+    texttemplate="%{y:.1f}%",         # ← one decimal plus a single “%”
+    textposition="outside"               # place labels above each bar
+  )
+  
   fig.update_layout(coloraxis_showscale=False)
   # format axis and add zero line
-  fig.update_yaxes(tickformat=",.1f%", ticksuffix="%")
+  fig.update_yaxes(range=[-111, 111], tickformat=",.1f%", ticksuffix="%")
   fig.update_layout(shapes=[dict(
       type="line", x0=-0.5, x1=len(plot_df)-0.5,
       y0=0, y1=0, line=dict(color="black", dash="dash")
@@ -177,9 +184,12 @@ for career_profiles in os.listdir(dir_path):
 
   fig_eth.update_traces(
       marker_line_width=0.5,
-      marker_line_color="black"
+      marker_line_color="black",
+      texttemplate="%{y:.1f}%",        # one decimal + “%”
+      textposition="outside"          # places each label above its bar
   )
-  fig_eth.update_yaxes(tickformat=",.1f%", ticksuffix="%")
+  
+  fig_eth.update_yaxes(range=[0, 111], tickformat=",.1f%", ticksuffix="%")
   fig_eth.update_layout(
       legend_title_text="Data Source",
       width=800, height=500
@@ -223,11 +233,18 @@ for career_profiles in os.listdir(dir_path):
 
   fig.update_layout(coloraxis_showscale=False)
   # format axis and add zero line
-  fig.update_yaxes(tickformat=",.1f%", ticksuffix="%")
+  fig.update_yaxes(range=[-111, 111], tickformat=",.1f%", ticksuffix="%")
   fig.update_layout(shapes=[dict(
       type="line", x0=-0.5, x1=len(plot_df)-0.5,
       y0=0, y1=0, line=dict(color="black", dash="dash")
   )])
+  
+  fig.update_traces(
+    marker_line_width=0.5,
+    marker_line_color="black",
+    texttemplate="%{y:.1f}%",         # ← one decimal plus a single “%”
+    textposition="outside"               # place labels above each bar
+  )
 
   print(f"Saved gender over-under bar chart for: {this_career_term}")
   fig.write_image(f"overunder-openai/{this_career_term}-gender.png")
@@ -266,9 +283,12 @@ for career_profiles in os.listdir(dir_path):
 
   fig_gen.update_traces(
       marker_line_width=0.5,
-      marker_line_color="black"
+      marker_line_color="black",
+      texttemplate="%{y:.1f}%",        # one decimal + “%”
+      textposition="outside"          # places each label above its bar
   )
-  fig_gen.update_yaxes(tickformat=",.1f%", ticksuffix="%")
+  
+  fig_gen.update_yaxes(range=[0, 111], tickformat=",.1f%", ticksuffix="%")
   fig_gen.update_layout(
       legend_title_text="Data Source",
       width=600, height=400
