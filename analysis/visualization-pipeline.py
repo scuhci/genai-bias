@@ -4,6 +4,7 @@ from collections import Counter
 import plotly.graph_objects as go
 import pandas as pd
 import os
+import re
 
 dir_path = "../profiles/openai/csvs/"
 baseline_dir_path = "../profiles/openai/bls-baselines.csv"
@@ -98,7 +99,7 @@ for career_profiles in os.listdir(dir_path):
               on="gender",
               how="outer",
               suffixes=("_genai", "_baseline"))
-        .fillna({"percent_genai": 0, "percent_baseline": 0})
+        .fillna({"percent_genai": 0})
         .assign(difference=lambda df: 
                   df["percent_genai"] - df["percent_baseline"])
         [["gender", "difference"]]
@@ -300,19 +301,27 @@ for career_profiles in os.listdir(dir_path):
   =============================================================
   '''
 
+  # 1. Remove common honorifics (Dr., Mr., Mrs., Ms.) at the start of the string
+  clean_names = genai_data["name"].str.replace(
+      r'^(?:dr|mr|mrs|ms)\.\s*',   # match title + dot + any spaces
+      '',                          # drop it
+      flags=re.IGNORECASE,
+      regex=True
+  )
+
   # Split full names into first/last
-  split_names = genai_data["name"].str.split(expand=True)
+  split_names = clean_names.str.split(expand=True)
   first_names = split_names[0]
   last_names = split_names[1]
   first_counts = first_names.value_counts().head(5).reset_index()
   first_counts.columns = ["First Name", "Count"]
   total_first = len(first_names)
-  first_counts["Percent of Dataset"] =(first_counts["Count"] / total_first * 100).round(1)
+  first_counts["Percent of Dataset"] =(first_counts["Count"] / 10000)
 
   last_counts = last_names.value_counts().head(5).reset_index()
   last_counts.columns = ["Last Name", "Count"]
   total_last = len(last_names)
-  last_counts["Percent of Dataset"] =(last_counts["Count"] / total_last * 100).round(1)
+  last_counts["Percent of Dataset"] =(last_counts["Count"] / 10000)
   fig_first = go.Figure(data=[
     go.Table(
         header=dict(values=list(first_counts.columns), fill_color='lightgrey'),

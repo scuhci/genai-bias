@@ -333,12 +333,12 @@ last_names = split_names[1]
 first_counts = first_names.value_counts().head(5).reset_index()
 first_counts.columns = ["First Name", "Count"]
 total_first = len(first_names)
-first_counts["Percent of Dataset"] =(first_counts["Count"] / total_first * 100).round(1)
+first_counts["Percent of Dataset"] =(first_counts["Count"] / 10000).round(1)
 
 last_counts = last_names.value_counts().head(5).reset_index()
 last_counts.columns = ["Last Name", "Count"]
 total_last = len(last_names)
-last_counts["Percent of Dataset"] =(last_counts["Count"] / total_last * 100).round(1)
+last_counts["Percent of Dataset"] =(last_counts["Count"] / 10000).round(1)
 fig_first = go.Figure(data=[
   go.Table(
       header=dict(values=list(first_counts.columns), fill_color='lightgrey'),
