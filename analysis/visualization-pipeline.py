@@ -15,9 +15,9 @@ for career_profiles in os.listdir(dir_path):
 
   datapath = os.path.join(dir_path, career_profiles)
   print(datapath)
-  genai_data = pd.read_csv(datapath, encoding="cp1252")
+  gpt4_data = pd.read_csv(datapath, encoding="cp1252")
 
-  # genai_data = pd.read_csv("../profiles/openai/csvs/biologistprofiles_openai.csv")
+  # gpt4_data = pd.read_csv("../profiles/openai/csvs/biologistprofiles_openai.csv")
 
   # get baseline data
   this_career_term = career_profiles.split("profiles_openai.csv")[0]
@@ -40,14 +40,14 @@ for career_profiles in os.listdir(dir_path):
       
   # merge any multi (i.e. hispanic, white) -> be included in both categories.
   merge_races = (
-      genai_data["ethnicity"]
+      gpt4_data["ethnicity"]
         .str.lower()
         .str.split(",", expand=False)          # e.g. ["hispanic", " white"]
         .apply(lambda lst: [x.strip() for x in lst])  
         .explode()                              # now one ethnicity per row
     )
     
-  genai_race_df = (
+  gpt4_race_df = (
         merge_races
           .str.lower()
           .value_counts(normalize=True)   # proportions
@@ -56,18 +56,18 @@ for career_profiles in os.listdir(dir_path):
           .rename(columns={"index":"ethnicity"})
     )
 
-  print("GenAI Ethnicity Data") 
-  print(genai_race_df)
+  print("gpt4 Ethnicity Data") 
+  print(gpt4_race_df)
 
   race_diff_df = (
-      genai_race_df
+      gpt4_race_df
         .merge(this_career_baseline_race_df,
               on="ethnicity",
               how="outer",
-              suffixes=("_genai", "_baseline"))
-        .fillna({"percent_genai": 0, "percent_baseline": 0})
+              suffixes=("_gpt4", "_baseline"))
+        .fillna({"percent_gpt4": 0, "percent_baseline": 0})
         .assign(difference=lambda df: 
-                  df["percent_genai"] - df["percent_baseline"])
+                  df["percent_gpt4"] - df["percent_baseline"])
         [["ethnicity", "difference"]]
   )
 
@@ -82,8 +82,8 @@ for career_profiles in os.listdir(dir_path):
   print("Baseline Gender Data") 
   print(this_career_baseline_gender_df)
 
-  genai_gender_df = (
-      genai_data["gender"]
+  gpt4_gender_df = (
+      gpt4_data["gender"]
         .str.lower()   
         .value_counts(normalize=True)
         .mul(100)
@@ -91,17 +91,17 @@ for career_profiles in os.listdir(dir_path):
         .rename(columns={"index":"gender"})
   )
 
-  print("GenAI Gender Data") 
-  print(genai_gender_df)
+  print("gpt4 Gender Data") 
+  print(gpt4_gender_df)
   gender_diff_df = (
-      genai_gender_df
+      gpt4_gender_df
         .merge(this_career_baseline_gender_df,
               on="gender",
               how="outer",
-              suffixes=("_genai", "_baseline"))
-        .fillna({"percent_genai": 0})
+              suffixes=("_gpt4", "_baseline"))
+        .fillna({"percent_gpt4": 0})
         .assign(difference=lambda df: 
-                  df["percent_genai"] - df["percent_baseline"])
+                  df["percent_gpt4"] - df["percent_baseline"])
         [["gender", "difference"]]
   )
   '''
@@ -159,21 +159,21 @@ for career_profiles in os.listdir(dir_path):
   eth_merge = (
     this_career_baseline_race_df
       .merge(
-          genai_race_df,
+          gpt4_race_df,
           on="ethnicity",
           how="outer"
       )
       .fillna(0)
       .rename(columns={
           "percent_x": "percent_baseline",
-          "percent_y": "percent_genai"
+          "percent_y": "percent_gpt4"
       })
     )
   print(eth_merge)
   fig_eth = px.bar(
       eth_merge,
       x="ethnicity",
-      y=["percent_baseline","percent_genai"],
+      y=["percent_baseline","percent_gpt4"],
       labels={
           "value": "% of Sample",
           "variable": "Source"
@@ -256,14 +256,14 @@ for career_profiles in os.listdir(dir_path):
   gender_merge = (
     this_career_baseline_gender_df
       .merge(
-          genai_gender_df,
+          gpt4_gender_df,
           on="gender",
           how="outer"
       )
       .fillna(0)
       .rename(columns={
           "percent_x": "percent_baseline",
-          "percent_y": "percent_genai"
+          "percent_y": "percent_gpt4"
       })
   )
   print(gender_merge)
@@ -272,7 +272,7 @@ for career_profiles in os.listdir(dir_path):
   fig_gen = px.bar(
       gender_merge,
       x="gender",
-      y=["percent_baseline","percent_genai"],
+      y=["percent_baseline","percent_gpt4"],
       labels={
           "value": "% of Sample",
           "variable": "Source"
@@ -302,7 +302,7 @@ for career_profiles in os.listdir(dir_path):
   '''
 
   # 1. Remove common honorifics (Dr., Mr., Mrs., Ms.) at the start of the string
-  clean_names = genai_data["name"].str.replace(
+  clean_names = gpt4_data["name"].str.replace(
       r'^(?:dr|mr|mrs|ms)\.\s*',   # match title + dot + any spaces
       '',                          # drop it
       flags=re.IGNORECASE,
