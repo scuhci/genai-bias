@@ -2,7 +2,7 @@ import os
 import json
 import requests
 
-API_KEY = os.getenv("MISTRAL_API_KEY", "WJPtjSqvgwT8pnza7GidcJwNSw85mINF")
+API_KEY = os.getenv("MISTRAL_API_KEY", "put api key here")
 HEADERS = {"Authorization": f"Bearer {API_KEY}"}
 UPLOAD_URL = "https://api.mistral.ai/v1/files"
 BATCH_URL = "https://api.mistral.ai/v1/batch/jobs"
