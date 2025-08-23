@@ -28,8 +28,8 @@ def make_batch_entry(career_term, i):
     return {
         "custom_id": f"{career_term.replace(' ', '')}_profile_{i}",
         "body": {
-            "model": "mistral-small-latest",
-            "temperature": 0.1,
+            "model": "mistral-medium-latest",
+            "temperature": 1,
             "max_tokens": 500,
             "messages": [
                 {"role": "system", "content": system_prompt},
