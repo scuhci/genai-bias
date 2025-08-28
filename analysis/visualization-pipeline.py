@@ -150,7 +150,7 @@ for career_profiles in os.listdir(dir_path):
   )])
 
   print(f"Saved ethnicity over-under bar chart for: {this_career_term}")
-  fig.write_image(f"overunder-openai/{this_career_term}-eth.png")
+  fig.write_image(f"overunder-openai/{this_career_term}-eth.pdf", scale=2)
 
   '''
   2. Double Bar Charts
@@ -189,15 +189,53 @@ for career_profiles in os.listdir(dir_path):
       texttemplate="%{y:.1f}%",        # one decimal + “%”
       textposition="outside"          # places each label above its bar
   )
-  
+
   fig_eth.update_yaxes(range=[0, 111], tickformat=",.1f%", ticksuffix="%")
   fig_eth.update_layout(
-      legend_title_text="Data Source",
-      width=800, height=500
+      font=dict(
+          family="Arial, sans-serif",
+          size=24        # base font size for labels, legend, hover, etc.
+      ),
+      title_font_size=28,          # title only
+      legend_title_font_size=24,
+      legend_font_size=24,
+      width=1000,                   # bump up width/height for better export
+      height=600
   )
 
-  fig_eth.write_image(f"dbarchart-openai/{this_career_term}-eth.png")
-  print(f"Saved gender double bar chart for: {this_career_term}")
+  # 2) Tweak axes title & tick labels
+  fig_eth.update_xaxes(
+      title_font=dict(size=24),    # x-axis title
+      tickfont=dict(size=24)       # x-axis tick labels
+  )
+  fig_eth.update_yaxes(
+      title_font=dict(size=24),    # y-axis title
+      tickfont=dict(size=24),      # y-axis tick labels
+      range=[0, 111],
+      tickformat=",.1f%",
+      ticksuffix="%"
+  )
+  fig_eth.update_layout(
+    legend=dict(
+        orientation="h",
+        yanchor="bottom",
+        y=-0.3,
+        xanchor="center",
+        x=0.5,
+        font=dict(size=24),           # legend item labels
+        title_font=dict(size=24)      # legend title
+    ),
+    margin=dict(
+        l=40, r=40, t=80,
+        b=120    # ensure enough space under the plot
+    )
+    )
+  # 3) Export with a higher “scale” factor to improve pdf quality
+  #    (requires kaleido; scale=2 doubles the pixel density)
+  output_path = f"dbarchart-openai/{this_career_term}-eth.pdf"
+  fig_eth.write_image(output_path, scale=2)
+
+  print(f"Saved ethnicity double bar chart for: {this_career_term}")
   '''
   =============================================================
   '''
@@ -248,7 +286,7 @@ for career_profiles in os.listdir(dir_path):
   )
 
   print(f"Saved gender over-under bar chart for: {this_career_term}")
-  fig.write_image(f"overunder-openai/{this_career_term}-gender.png")
+  fig.write_image(f"overunder-openai/{this_career_term}-gender.pdf", scale=2)
 
   '''
   2. Double Bar charts
@@ -281,21 +319,55 @@ for career_profiles in os.listdir(dir_path):
       barmode="group",
       category_orders={"gender": ["female", "male"]},
   )
-
   fig_gen.update_traces(
       marker_line_width=0.5,
       marker_line_color="black",
       texttemplate="%{y:.1f}%",        # one decimal + “%”
       textposition="outside"          # places each label above its bar
   )
-  
-  fig_gen.update_yaxes(range=[0, 111], tickformat=",.1f%", ticksuffix="%")
   fig_gen.update_layout(
-      legend_title_text="Data Source",
-      width=600, height=400
+      font=dict(
+          family="Arial, sans-serif",
+          size=24        # base font size for labels, legend, hover, etc.
+      ),
+      title_font_size=28,          # title only
+      legend_title_font_size=24,
+      legend_font_size=24,
+      width=1000,                   # bump up width/height for better export
+      height=600
   )
-  
-  fig_gen.write_image(f"dbarchart-openai/{this_career_term}-gender.png")
+
+  # 2) Tweak the axis label & tick fonts
+  fig_gen.update_xaxes(
+      title_font=dict(size=24),
+      tickfont=dict(size=24)
+  )
+  fig_gen.update_yaxes(
+      title_font=dict(size=24),
+      tickfont=dict(size=24),
+      range=[0, 111],         # gives a bit of headroom above 100%
+      tickformat=",.1f%",
+      ticksuffix="%"
+  )
+  fig_gen.update_layout(
+    legend=dict(
+        orientation="h",
+        yanchor="bottom",
+        y=-0.3,
+        xanchor="center",
+        x=0.5,
+        font=dict(size=24),           # legend item labels
+        title_font=dict(size=24)      # legend title
+    ),
+    margin=dict(
+        l=40, r=40, t=80,
+        b=120    # ensure enough space under the plot
+    )
+    )
+
+  # 3) Export as a high-res pdf (scale=2 doubles pixel density)
+  output_path = f"dbarchart-openai/{this_career_term}-gender.pdf"
+  fig_gen.write_image(output_path, scale=2)
   print(f"Saved gender double bar chart for: {this_career_term}")
   '''
   =============================================================
@@ -333,7 +405,7 @@ for career_profiles in os.listdir(dir_path):
     title_x=0.5,                  # centers the title
     margin=dict(t=80, b=100)       # add a bit of top margin so title isn’t too close
   )
-  fig_first.write_image(f"first-name-tables/{this_career_term}.png", width=800, height=800)
+  fig_first.write_image(f"first-name-tables/{this_career_term}.pdf", width=800, height=800)
 
   # 5. Generate a Plotly table for top 5 last name counts
   fig_last = go.Figure(data=[
@@ -347,7 +419,7 @@ for career_profiles in os.listdir(dir_path):
     title_x=0.5,                  # centers the title
     margin=dict(t=80, b=40)       # add a bit of top margin so title isn’t too close
   )
-  fig_last.write_image(f"last-name-tables/{this_career_term}.png", width=800, height=800)
+  fig_last.write_image(f"last-name-tables/{this_career_term}.pdf", width=800, height=800)
 
 
   print(f"Saved top 5 first-name counts table for: {this_career_term}")
@@ -372,5 +444,5 @@ for career_profiles in os.listdir(dir_path):
       yaxis=dict(visible=False),
       margin=dict(l=0, r=0, t=40, b=0)
   )
-  fig.write_image(f"wordcloud-openai/{this_career_term}.png")
+  fig.write_image(f"wordcloud-openai/{this_career_term}.pdf", scale=2)
   print(f"Saved word cloud for: {this_career_term}")

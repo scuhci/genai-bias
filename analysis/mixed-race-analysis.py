@@ -63,7 +63,6 @@ for career_profiles in os.listdir(genai_dir):
 # 5) Build a DataFrame and sort by career
 mixed_df = pd.DataFrame(mixed_data).sort_values("career")
 
-# 6) Render as a Plotly table
 fig = go.Figure(data=[
     go.Table(
         header=dict(
@@ -73,7 +72,8 @@ fig = go.Figure(data=[
                 "BLS Baseline – % Mixed Race"
             ],
             fill_color="lightgrey",
-            align="left"
+            align="left",
+            font=dict(size=18)            # ← header font size
         ),
         cells=dict(
             values=[
@@ -81,7 +81,8 @@ fig = go.Figure(data=[
                 mixed_df["percent_mixed_genai"],
                 mixed_df["percent_mixed_baseline"]
             ],
-            align="left"
+            align="left",
+            font=dict(size=14)            # ← cell font size
         )
     )
 ])
@@ -92,11 +93,13 @@ fig.update_layout(
     margin=dict(t=60, b=20, l=20, r=20)
 )
 
+fig.show()
+
+
 # 7) Save as PNG
 output_dir = "mixed_race_tables"
 os.makedirs(output_dir, exist_ok=True)
-output_path = os.path.join(output_dir, "mixed_race_by_career.png")
+output_path = os.path.join(output_dir, "mixed_race_by_career.pdf")
 fig.write_image(output_path, width=800, height=1000)
 
-fig.show()
 print(f"Saved mixed-race percentages table to {output_path}")
