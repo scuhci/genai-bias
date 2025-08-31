@@ -6,16 +6,16 @@ import utils
 
 # Code to synchronously generate 1,000 profiles via DeepSeek for 40 career terms.
 career_list = [
-    "chiefexecutiveofficer",
-    "computerprogrammer",
-    "softwaredeveloper",
-    "engineer",
-    "drafter",
-    "biologist",
-    "chemist",
-    "primaryschoolteacher",
-    "specialedteacher",
-    "librarian"
+    # "chiefexecutiveofficer",
+    # "computer programmer",
+    # "software developer",
+    # "engineer",
+    # "drafter",
+    # "biologist",
+    # "chemist",
+    # "primaryschoolteacher",
+    # "specialedteacher",
+    # "librarian",
     # "author",
     # "pharmacist",
     # "doctor",
@@ -44,15 +44,16 @@ career_list = [
     # "housekeeper",
     # "pilot",
     # "busdriver",
-    # "truckdriver",
-    # "craneoperator",
-    # "garbagecollector"
+    "truckdriver",
+    "craneoperator",
+    "garbagecollector"
 ]
 
 csv_headers = ["name", "age", "gender", "ethnicity", "salary", "motivations", "biography"]
 
 for career_term in career_list:
-    with open(f"../../profiles/deepseek/{career_term}_deepseek.csv", mode="a", newline="") as file:
+    filename = career_term.replace(" ", "")
+    with open(f"../../profiles/deepseek/{filename}_deepseek.csv", mode="a", newline="") as file:
         writer = csv.writer(file)
         for i in range(1000):  
             try:

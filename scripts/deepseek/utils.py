@@ -4,7 +4,7 @@ import time
 import json
 
 client = OpenAI(
-    api_key="sk-a281c09227384c7ba15c587cad9a058d",
+    api_key=<KEY>
     base_url="https://api.deepseek.com",
 )
 
