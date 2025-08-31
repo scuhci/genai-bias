@@ -6,8 +6,13 @@ import pandas as pd
 import os
 import re
 
-dir_path = "../profiles/openai/csvs/"
-baseline_dir_path = "../profiles/openai/bls-baselines.csv"
+# --- Configurable parameters ---
+model_name = "GPT 4.0"     
+model_owner = "openai"
+
+# Paths parameterized by model_owner
+dir_path = f"../profiles/{model_owner}/"
+baseline_dir_path = f"../profiles/bls-baselines.csv"
 
 baselines_data = pd.read_csv(baseline_dir_path)
 
@@ -15,20 +20,17 @@ for career_profiles in os.listdir(dir_path):
 
   datapath = os.path.join(dir_path, career_profiles)
   print(datapath)
-  gpt4_data = pd.read_csv(datapath, encoding="cp1252")
-
-  # gpt4_data = pd.read_csv("../profiles/openai/csvs/biologistprofiles_openai.csv")
+  model_data = pd.read_csv(datapath, encoding="cp1252")
 
   # get baseline data
-  this_career_term = career_profiles.split("profiles_openai.csv")[0]
+  this_career_term = career_profiles.split(f"profiles_{model_owner}.csv")[0]
   print("Generating visualizations for... " + this_career_term)
-  # this_career_term = "biologist"
+
   this_career_baseline_df = baselines_data[baselines_data["genai_bias_search_term"] == this_career_term]
 
   eth_cols = ["p_white","p_black","p_asian","p_hispanic"]
 
   # race percentages DF
-
   this_career_baseline_race_df = (
       this_career_baseline_df[eth_cols]
         .rename(columns=lambda c: c.replace("p_",""))  # drop the "p_" prefix
@@ -40,14 +42,14 @@ for career_profiles in os.listdir(dir_path):
       
   # merge any multi (i.e. hispanic, white) -> be included in both categories.
   merge_races = (
-      gpt4_data["ethnicity"]
+      model_data["ethnicity"]
         .str.lower()
         .str.split(",", expand=False)          # e.g. ["hispanic", " white"]
         .apply(lambda lst: [x.strip() for x in lst])  
         .explode()                              # now one ethnicity per row
     )
     
-  gpt4_race_df = (
+  model_race_df = (
         merge_races
           .str.lower()
           .value_counts(normalize=True)   # proportions
@@ -56,18 +58,18 @@ for career_profiles in os.listdir(dir_path):
           .rename(columns={"index":"ethnicity"})
     )
 
-  print("gpt4 Ethnicity Data") 
-  print(gpt4_race_df)
+  print(f"{model_name} Ethnicity Data") 
+  print(model_race_df)
 
   race_diff_df = (
-      gpt4_race_df
+      model_race_df
         .merge(this_career_baseline_race_df,
               on="ethnicity",
               how="outer",
-              suffixes=("_gpt4", "_baseline"))
-        .fillna({"percent_gpt4": 0, "percent_baseline": 0})
+              suffixes=("_model", "_baseline"))
+        .fillna({"percent_model": 0, "percent_baseline": 0})
         .assign(difference=lambda df: 
-                  df["percent_gpt4"] - df["percent_baseline"])
+                  df["percent_model"] - df["percent_baseline"])
         [["ethnicity", "difference"]]
   )
 
@@ -82,8 +84,8 @@ for career_profiles in os.listdir(dir_path):
   print("Baseline Gender Data") 
   print(this_career_baseline_gender_df)
 
-  gpt4_gender_df = (
-      gpt4_data["gender"]
+  model_gender_df = (
+      model_data["gender"]
         .str.lower()   
         .value_counts(normalize=True)
         .mul(100)
@@ -91,19 +93,21 @@ for career_profiles in os.listdir(dir_path):
         .rename(columns={"index":"gender"})
   )
 
-  print("gpt4 Gender Data") 
-  print(gpt4_gender_df)
+  print(f"{model_name} Gender Data") 
+  print(model_gender_df)
+
   gender_diff_df = (
-      gpt4_gender_df
+      model_gender_df
         .merge(this_career_baseline_gender_df,
               on="gender",
               how="outer",
-              suffixes=("_gpt4", "_baseline"))
-        .fillna({"percent_gpt4": 0})
+              suffixes=("_model", "_baseline"))
+        .fillna({"percent_model": 0, "percent_baseline": 0})
         .assign(difference=lambda df: 
-                  df["percent_gpt4"] - df["percent_baseline"])
+                  df["percent_model"] - df["percent_baseline"])
         [["gender", "difference"]]
   )
+
   '''
   Ethnicity visualizations
   =============================================================
@@ -131,7 +135,7 @@ for career_profiles in os.listdir(dir_path):
       color_continuous_scale=["#d62728","#1f77b4"],
       category_orders={"ethnicity": main_eth},
       labels={"difference":"% Deviation from BLS Baseline"},
-      title=f"GPT 4.0 vs BLS Baselines - Ethnicity Distributions <br> Career Term: {this_career_term}"
+      title=f"{model_name} vs BLS Baselines - Ethnicity Distributions <br> Career Term: {this_career_term}"
   )
 
   fig.update_traces(
@@ -150,7 +154,7 @@ for career_profiles in os.listdir(dir_path):
   )])
 
   print(f"Saved ethnicity over-under bar chart for: {this_career_term}")
-  fig.write_image(f"overunder-openai/{this_career_term}-eth.pdf", scale=2)
+  fig.write_image(f"overunder-{model_owner}/{this_career_term}-eth.pdf", scale=2)
 
   '''
   2. Double Bar Charts
@@ -159,26 +163,26 @@ for career_profiles in os.listdir(dir_path):
   eth_merge = (
     this_career_baseline_race_df
       .merge(
-          gpt4_race_df,
+          model_race_df,
           on="ethnicity",
           how="outer"
       )
       .fillna(0)
       .rename(columns={
           "percent_x": "percent_baseline",
-          "percent_y": "percent_gpt4"
+          "percent_y": "percent_model"
       })
     )
   print(eth_merge)
   fig_eth = px.bar(
       eth_merge,
       x="ethnicity",
-      y=["percent_baseline","percent_gpt4"],
+      y=["percent_baseline","percent_model"],
       labels={
           "value": "% of Sample",
           "variable": "Source"
       },
-      title=f"GPT 4.0 vs. BLS Baselines: Ethnicity <br> Career Term: {this_career_term}",
+      title=f"{model_name} vs. BLS Baselines: Ethnicity <br> Career Term: {this_career_term}",
       barmode="group",           # side–by–side bars
       category_orders={"ethnicity": ["white","black","asian","hispanic"]}
   )
@@ -230,9 +234,8 @@ for career_profiles in os.listdir(dir_path):
         b=120    # ensure enough space under the plot
     )
     )
-  # 3) Export with a higher “scale” factor to improve pdf quality
-  #    (requires kaleido; scale=2 doubles the pixel density)
-  output_path = f"dbarchart-openai/{this_career_term}-eth.pdf"
+  # Export
+  output_path = f"dbarchart-{model_owner}/{this_career_term}-eth.pdf"
   fig_eth.write_image(output_path, scale=2)
 
   print(f"Saved ethnicity double bar chart for: {this_career_term}")
@@ -267,7 +270,7 @@ for career_profiles in os.listdir(dir_path):
       color_continuous_scale=["#d62728","#1f77b4"],
       category_orders={"gender": gender},
       labels={"difference":"% Deviation from BLS Baseline"},
-      title=f"GPT 4.0 vs BLS Baselines - Gender Distributions <br> Career Term: {this_career_term}"
+      title=f"{model_name} vs BLS Baselines - Gender Distributions <br> Career Term: {this_career_term}"
   )
 
   fig.update_layout(coloraxis_showscale=False)
@@ -286,7 +289,7 @@ for career_profiles in os.listdir(dir_path):
   )
 
   print(f"Saved gender over-under bar chart for: {this_career_term}")
-  fig.write_image(f"overunder-openai/{this_career_term}-gender.pdf", scale=2)
+  fig.write_image(f"overunder-{model_owner}/{this_career_term}-gender.pdf", scale=2)
 
   '''
   2. Double Bar charts
@@ -294,14 +297,14 @@ for career_profiles in os.listdir(dir_path):
   gender_merge = (
     this_career_baseline_gender_df
       .merge(
-          gpt4_gender_df,
+          model_gender_df,
           on="gender",
           how="outer"
       )
       .fillna(0)
       .rename(columns={
           "percent_x": "percent_baseline",
-          "percent_y": "percent_gpt4"
+          "percent_y": "percent_model"
       })
   )
   print(gender_merge)
@@ -310,12 +313,12 @@ for career_profiles in os.listdir(dir_path):
   fig_gen = px.bar(
       gender_merge,
       x="gender",
-      y=["percent_baseline","percent_gpt4"],
+      y=["percent_baseline","percent_model"],
       labels={
           "value": "% of Sample",
           "variable": "Source"
       },
-      title=f"GPT 4.0 vs. BLS Baselines: Gender <br> Career Term: {this_career_term}",
+      title=f"{model_name} vs. BLS Baselines: Gender <br> Career Term: {this_career_term}",
       barmode="group",
       category_orders={"gender": ["female", "male"]},
   )
@@ -365,8 +368,8 @@ for career_profiles in os.listdir(dir_path):
     )
     )
 
-  # 3) Export as a high-res pdf (scale=2 doubles pixel density)
-  output_path = f"dbarchart-openai/{this_career_term}-gender.pdf"
+  # Export
+  output_path = f"dbarchart-{model_owner}/{this_career_term}-gender.pdf"
   fig_gen.write_image(output_path, scale=2)
   print(f"Saved gender double bar chart for: {this_career_term}")
   '''
@@ -374,7 +377,7 @@ for career_profiles in os.listdir(dir_path):
   '''
 
   # 1. Remove common honorifics (Dr., Mr., Mrs., Ms.) at the start of the string
-  clean_names = gpt4_data["name"].str.replace(
+  clean_names = model_data["name"].str.replace(
       r'^(?:dr|mr|mrs|ms)\.\s*',   # match title + dot + any spaces
       '',                          # drop it
       flags=re.IGNORECASE,
@@ -394,6 +397,7 @@ for career_profiles in os.listdir(dir_path):
   last_counts.columns = ["Last Name", "Count"]
   total_last = len(last_names)
   last_counts["Percent of Dataset"] =(last_counts["Count"] / 10000)
+
   fig_first = go.Figure(data=[
     go.Table(
         header=dict(values=list(first_counts.columns), fill_color='lightgrey'),
@@ -401,7 +405,7 @@ for career_profiles in os.listdir(dir_path):
     )
   ])
   fig_first.update_layout(
-    title_text=f"5 Most Frequent First Names: GPT 4.0 <br> Career Term: {this_career_term}",
+    title_text=f"5 Most Frequent First Names: {model_name} <br> Career Term: {this_career_term}",
     title_x=0.5,                  # centers the title
     margin=dict(t=80, b=100)       # add a bit of top margin so title isn’t too close
   )
@@ -415,12 +419,11 @@ for career_profiles in os.listdir(dir_path):
     )
   ])
   fig_last.update_layout(
-    title_text=f"5 Most Frequent Last Names: GPT 4.0 <br> Career Term: {this_career_term}",
+    title_text=f"5 Most Frequent Last Names: {model_name} <br> Career Term: {this_career_term}",
     title_x=0.5,                  # centers the title
     margin=dict(t=80, b=40)       # add a bit of top margin so title isn’t too close
   )
   fig_last.write_image(f"last-name-tables/{this_career_term}.pdf", width=800, height=800)
-
 
   print(f"Saved top 5 first-name counts table for: {this_career_term}")
   print(f"Saved top 5 last-name counts table for: {this_career_term}")
@@ -444,5 +447,5 @@ for career_profiles in os.listdir(dir_path):
       yaxis=dict(visible=False),
       margin=dict(l=0, r=0, t=40, b=0)
   )
-  fig.write_image(f"wordcloud-openai/{this_career_term}.pdf", scale=2)
+  fig.write_image(f"wordcloud-{model_owner}/{this_career_term}.pdf", scale=2)
   print(f"Saved word cloud for: {this_career_term}")
