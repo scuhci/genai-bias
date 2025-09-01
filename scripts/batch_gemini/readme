@@ -1,0 +1,4 @@
+Start by running submit_batch.py after inputting the contents of your batch. Be sure to change the request name of each batch in batch_utils and submit_batch before running. 
+Then, follow the link posted in your terminal. You'll be able to track the progress of the batch directly from the Google Cloud plaform.
+Once it's finished, you can download it by heading over to the Cloud Storage page and clicking on the appropriate bucket it's stored in. 
+From there, simply use to_csv.py to convert the downloaded JSON into a CSV
