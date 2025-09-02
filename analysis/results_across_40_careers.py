@@ -4,8 +4,8 @@ import re
 import pandas as pd
 
 # ======== CONFIGURE THIS ========
-DIR_PATH = "../profiles/deepseek"  # <-- change to your folder
-OUTPUT_CSV = "deepseek_percentages_across_40_careers.csv"
+DIR_PATH = "../profiles/gemini"  # <-- change to your folder
+OUTPUT_CSV = "gemini_percentages_across_40_careers.csv"
 DECIMALS = 1
 # =================================
 
@@ -18,8 +18,8 @@ def canonicalize_occupation(filename: str) -> str:
     """
     stem = os.path.splitext(os.path.basename(filename))[0]
     # Strip the fixed suffix if present
-    if stem.endswith("profiles_openai"):
-        stem = stem.replace("profiles_openai", "")
+    if stem.endswith("profiles_gemini"):
+        stem = stem.replace("profiles_gemini", "")
     # Clean up leftover underscores or hyphens
     stem = re.sub(r"[_\-]+$", "", stem).strip()
     return stem
