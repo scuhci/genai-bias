@@ -4,8 +4,8 @@ import re
 import pandas as pd
 
 # ======== CONFIGURE THIS ========
-DIR_PATH = "../profiles/gemini"  # <-- change to your folder
-OUTPUT_CSV = "results/gemini_percentages_across_40_careers.csv"
+DIR_PATH = "../profiles/mistral"  # <-- change to your folder
+OUTPUT_CSV = "results_across_40/mistral_percentages_across_40_careers.csv"
 DECIMALS = 1
 # =================================
 
@@ -14,12 +14,12 @@ RACE_SPLIT_RE = re.compile(r"\s*(?:,|/|;|\s+and\s+)\s*", flags=re.IGNORECASE)
 
 def canonicalize_occupation(filename: str) -> str:
     """
-    Convert 'buildinginspectorprofiles_gemini.csv' → 'buildinginspector'
+    Convert 'buildinginspectorprofile_mistral.csv' → 'buildinginspector'
     """
     stem = os.path.splitext(os.path.basename(filename))[0]
     # Strip the fixed suffix if present
-    if stem.endswith("_gemini"):
-        stem = stem.replace("_gemini", "")
+    if stem.endswith("profile_mistral"):
+        stem = stem.replace("profile_mistral", "")
     # Clean up leftover underscores or hyphens
     stem = re.sub(r"[_\-]+$", "", stem).strip()
     return stem
