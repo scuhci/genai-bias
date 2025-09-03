@@ -4,8 +4,8 @@ from pathlib import Path
 # ----------------------------
 # CONFIG
 # ----------------------------
-DATA_DIR = Path("results_vs_BLS")  # update this to your directory
-OUTPUT_FILE = "results_vs_BLS/averaged_differences_vs_BLS.csv"
+DATA_DIR = Path("results_across_40")  # update this to your directory
+OUTPUT_FILE = "results_across_40/averaged_differences_vs_BLS.csv"
 
 # ----------------------------
 # Load all CSVs
@@ -24,7 +24,7 @@ combined = pd.concat(dfs, ignore_index=True)
 # Group by occupation and average
 # ----------------------------
 averaged = (
-    combined.groupby("occupation")[["diff_p_women", "diff_p_white", "diff_p_black", "diff_p_asian", "diff_p_hispanic"]]
+    combined.groupby("occupation")[["p_women", "p_white", "p_black", "p_asian", "p_hispanic"]]
     .mean()
     .round(1)   # round to 1 decimal place
     .reset_index()
