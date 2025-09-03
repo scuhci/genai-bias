@@ -86,7 +86,7 @@ def main():
         diff["occupation"] = merged["occupation"]
         diff["model_name"] = model_name
         for c in DEMO_COLS:
-            diff[f"diff_{c}"] = merged[f"bls_{c}"] - merged[c]
+            diff[f"diff_{c}"] = merged[c] - merged[f"bls_{c}"]
 
         out_rows.append(diff)
 

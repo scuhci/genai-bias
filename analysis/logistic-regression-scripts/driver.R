@@ -1,0 +1,5 @@
+source("logistic_regression_black.R")
+source("logistic_regression_white.R")
+source("logistic_regression_hispanic.R")
+source("logistic_regression_women.R")
+source("logistic_regression_asian.R")

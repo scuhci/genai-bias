@@ -1,37 +1,75 @@
 library(visreg)
 
-proportions = read.csv("output_converted.csv")
-m_black.stereotyped = glm(
-  genai_p_black ~ I(bls_p_black - 0.5), 
-  family = quasibinomial, 
-  data   = proportions, 
+proportions <- read.csv("output.csv")
+m_black.stereotyped <- glm(
+  genai_p_black ~ I(bls_p_black - 0.5),
+  family = quasibinomial,
+  data   = proportions,
   weights = genai_n
 )
 
-pdf("visreg_black_comparison.pdf", width=8, height=6)
+pdf("logreg_black.pdf", width = 8, height = 6)
 par(
-  cex.main = 1.5,   # title
-  cex.lab  = 1.5,   # axis labels
-  cex.axis = 1.3,   # axis tick labels
-  mar      = c(5, 5, 4, 2)  # margins
+  cex.main = 1.5,
+  cex.lab  = 1.5,
+  cex.axis = 1.3,
+  mar      = c(5, 5, 4, 2)
 )
 
-visreg(
-  m_black.stereotyped,
-  "bls_p_black",
+# Limits & max observed
+xlim <- c(0, 1)
+ylim <- c(0, 1)
+max_bls <- max(proportions$bls_p_black, na.rm = TRUE)
+
+# --- Set up empty plot ---
+plot(NA, xlim = xlim, ylim = ylim,
+     xlab = "BLS proportion black",
+     ylab = "Gemini 2.5 proportion black",
+     main = "Difference in Representation Across 40 Career Terms \nRace: black")
+
+# --- Darker graph-paper style grid ---
+xticks <- axTicks(1)  # x-axis tick positions
+yticks <- axTicks(2)  # y-axis tick positions
+abline(v = xticks, col = "grey70", lty = "dotted", lwd = 0.8)
+abline(h = yticks, col = "grey70", lty = "dotted", lwd = 0.8)
+
+# --- Shaded region to the right of max observed ---
+usr <- par("usr")
+rect(xleft = max_bls, xright = usr[2],
+     ybottom = usr[3], ytop = usr[4],
+     col = rgb(0.5, 0.5, 0.5, 0.25), border = NA)
+
+# --- Visreg fit (compute only, then plot) ---
+vr <- visreg(
+  m_black.stereotyped, "bls_p_black",
   scale = "response",
-  rug   = FALSE,
-  main  = "Difference in Representation Across 40 Career Terms \nRace: black",
-  xlab  = "BLS proportion black",
-  ylab  = "GPT-4 proportion black",
-  xlim  = c(0,1),    # force x-axis from 0–1
-  ylim  = c(0,1)     # optional: force y-axis from 0–1 as well
+  plot  = FALSE
 )
 
-points(genai_p_black ~ bls_p_black, data=proportions, pch=20)
+df <- vr$fit
+xv <- df$bls_p_black
+ord <- order(xv)
 
-# reference lines
-abline(coef=c(0,1), lty="dashed") # y = x
-abline(v=.5, lty="dashed")
+# CI band
+polygon(
+  x = c(xv[ord], rev(xv[ord])),
+  y = c(df$visregLwr[ord], rev(df$visregUpr[ord])),
+  col = rgb(0.2, 0.4, 0.8, 0.2), border = NA
+)
+
+# Fitted line
+lines(xv[ord], df$visregFit[ord], lwd = 2)
+
+# Points
+points(genai_p_black ~ bls_p_black, data = proportions, pch = 20)
+
+# Reference line y = x
+abline(coef = c(0, 1), lty = "dashed")
+
+# Vertical red line + label at bottom
+abline(v = max_bls, col = "red", lwd = 2, lty = "dotted")
+text(x = max_bls, y = 0.05,   # <-- place near bottom
+     labels = paste0("max observed = ", round(max_bls * 100, 1), "%"),
+     pos = 4, col = "red", cex = 1.2)
 
 dev.off()
