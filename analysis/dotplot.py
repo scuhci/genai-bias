@@ -32,9 +32,8 @@ REQUIRED_COLS = [
 ]
 
 # Output paths
-OUTPUT_PNG_FULL   = "occupational_bias_multirace_avgTop_jitter.png"
-OUTPUT_PNG_AVG    = "occupational_bias_averages_only.png"
-
+OUTPUT_PDF_FULL = "occupational_bias_multirace_avgTop_jitter.pdf"
+OUTPUT_PDF_AVG  = "occupational_bias_averages_only.pdf"
 # ----------------------------
 # Load, validate, and reshape
 # ----------------------------
@@ -243,9 +242,9 @@ plt.suptitle(
     y=0.92, fontsize=14
 )
 plt.tight_layout(rect=[0.05, 0.01, 0.98, 0.92])
-plt.savefig(OUTPUT_PNG_FULL, dpi=220, bbox_inches="tight")
-print(f"Saved figure to: {Path(OUTPUT_PNG_FULL).resolve()}")
 
+plt.savefig(OUTPUT_PDF_FULL, dpi=220, bbox_inches="tight")
+print(f"Saved figure to: {Path(OUTPUT_PDF_FULL).resolve()}")
 # ----------------------------
 # SEPARATE FIGURE: AVERAGES ONLY
 # ----------------------------
@@ -287,5 +286,7 @@ axes2[0].legend(title="Model", loc="lower right", frameon=True, fontsize=9)
 
 plt.suptitle("Averages Only — Δ from BLS by Race", y=1.05, fontsize=13)
 plt.tight_layout()
-plt.savefig(OUTPUT_PNG_AVG, dpi=220, bbox_inches="tight")
-print(f"Saved figure to: {Path(OUTPUT_PNG_AVG).resolve()}")
+
+# Save averages-only figure
+plt.savefig(OUTPUT_PDF_AVG, dpi=220, bbox_inches="tight")
+print(f"Saved figure to: {Path(OUTPUT_PDF_AVG).resolve()}")
