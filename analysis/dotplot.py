@@ -235,7 +235,12 @@ for ax, race in zip(axes, RACES):
     ax.grid(axis="x", linestyle=":", linewidth=0.8, alpha=0.7)
 
 # Single legend
-axes[0].legend(title="Model", loc="lower right", frameon=True)
+axes[0].legend(
+    title="Model",
+    loc="upper left", 
+    bbox_to_anchor=(0.5, 1),  # nudges it just above the axes, left-aligned
+    frameon=True
+)
 
 plt.suptitle(
     "Occupational Representation vs. BLS by Race — Average Row at Top\n(negative = underrepresented, positive = overrepresented)",
@@ -282,8 +287,13 @@ for ax, race in zip(axes2, RACES):
     ax.grid(axis="x", linestyle=":", linewidth=0.8, alpha=0.7)
 
 # Single legend for the averages figure
-axes2[0].legend(title="Model", loc="lower right", frameon=True, fontsize=9)
-
+axes2[0].legend(
+    title="Model",
+    loc="upper left",
+    bbox_to_anchor=(0, 1.05),
+    frameon=True,
+    fontsize=9
+)
 plt.suptitle("Averages Only — Δ from BLS by Race", y=1.05, fontsize=13)
 plt.tight_layout()
 
