@@ -1,6 +1,6 @@
 library(visreg)
 
-proportions <- read.csv("output.csv")
+proportions <- read.csv("../percent-results/results_vs_BLS/averaged_differences_vs_BLS.csv")
 m_asian.stereotyped <- glm(
   genai_p_asian ~ I(bls_p_asian - 0.5),
   family = quasibinomial,
@@ -24,8 +24,8 @@ max_bls <- max(proportions$bls_p_asian, na.rm = TRUE)
 # --- Set up empty plot ---
 plot(NA, xlim = xlim, ylim = ylim,
      xlab = "BLS proportion asian",
-     ylab = "Gemini 2.5 proportion asian",
-     main = "Difference in Representation Across 40 Career Terms \nRace: asian")
+     ylab = "Average proportion asian",
+     main = "Average Difference in Representation Across All Occupations \nRace: asian")
 
 # --- Darker graph-paper style grid ---
 xticks <- axTicks(1)  # x-axis tick positions
