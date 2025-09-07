@@ -1,9 +1,13 @@
 library(visreg)
+library(broom)
+library(dplyr)
+library(purrr)
+library(stats)
 
 # ----------------------------
 # Load data
 # ----------------------------
-proportions <- read.csv("../percent-results/results_vs_BLS/averaged_differences_vs_BLS.csv")
+proportions <- read.csv("analysis/percent-results/results_vs_BLS/averaged_differences_vs_BLS.csv")
 
 # ----------------------------
 # Helper to make one plot/PDF
@@ -125,3 +129,117 @@ groups <- list(
 for (g in groups) {
   plot_one(group = g$key, pretty_group = g$pretty, out_pdf = g$file)
 }
+
+# ----------------------------
+# Helper to run one regression & extract alpha/beta tests
+# ----------------------------
+analyze_one <- function(group, pretty_group) {
+  bls_col   <- paste0("bls_p_", group)
+  genai_col <- paste0("genai_p_", group)
+  
+  fml <- as.formula(paste0(genai_col, " ~ I(", bls_col, " - 0.5)"))
+  m <- glm(
+    fml,
+    family  = quasibinomial,
+    data    = proportions,
+    weights = proportions$genai_n
+  )
+  
+  # extract coefs
+  est <- coef(summary(m))
+  alpha <- est[1, "Estimate"]
+  se_alpha <- est[1, "Std. Error"]
+  beta <- est[2, "Estimate"]
+  se_beta <- est[2, "Std. Error"]
+  
+  # Wald tests
+  z_alpha <- (alpha - 0) / se_alpha
+  p_alpha <- 2 * pnorm(-abs(z_alpha))
+  
+  z_beta <- (beta - 1) / se_beta
+  p_beta <- 2 * pnorm(-abs(z_beta))
+  
+  tibble(
+    group = pretty_group,
+    alpha = alpha, se_alpha = se_alpha, p_alpha = p_alpha,
+    beta  = beta,  se_beta  = se_beta,  p_beta  = p_beta
+  )
+}
+
+# ----------------------------
+# Run for all groups
+# ----------------------------
+raw_results <- map_dfr(groups, ~ analyze_one(.x$key, .x$pretty))
+
+# ----------------------------
+# FDR correction
+# ----------------------------
+raw_results <- raw_results %>%
+  mutate(
+    p_alpha_fdr = p.adjust(p_alpha, method = "BH"),
+    p_beta_fdr  = p.adjust(p_beta, method = "BH")
+  )
+
+# ----------------------------
+# Significance stars
+# ----------------------------
+star_fun <- function(p) {
+  if (p < 0.001) return("***")
+  if (p < 0.01)  return("**")
+  if (p < 0.05)  return("*")
+  return("")
+}
+
+# Strength coding
+code_alpha <- function(a, sig) {
+  if (!sig) return("0")
+  if (a > 0) {
+    if (a < 0.1) return("+")
+    if (a < 0.25) return("++")
+    return("+++")
+  } else {
+    if (a > -0.1) return("-")
+    if (a > -0.25) return("--")
+    return("---")
+  }
+}
+
+code_beta <- function(b, sig) {
+  if (!sig) return("0")
+  diff <- b - 1
+  if (diff > 0) {
+    if (diff < 0.1) return("+")
+    if (diff < 0.25) return("++")
+    return("+++")
+  } else {
+    if (diff > -0.1) return("-")
+    if (diff > -0.25) return("--")
+    return("---")
+  }
+}
+
+# ----------------------------
+# Build final table
+# ----------------------------
+final_table <- raw_results %>%
+  rowwise() %>%
+  mutate(
+    alpha_fmt = paste0(round(alpha, 3), star_fun(p_alpha_fdr)),
+    alpha_code = code_alpha(alpha, p_alpha_fdr < 0.05),
+    beta_fmt  = paste0(round(beta, 3),  star_fun(p_beta_fdr)),
+    beta_code = code_beta(beta,  p_beta_fdr  < 0.05)
+  ) %>%
+  ungroup() %>%
+  select(group, alpha_fmt, alpha_code, beta_fmt, beta_code)
+
+
+print(final_table)
+
+# ----------------------------
+# Export final table to CSV
+# ----------------------------
+write.csv(
+  final_table,
+  file = "regression_results_by_model.csv",
+  row.names = FALSE
+)
