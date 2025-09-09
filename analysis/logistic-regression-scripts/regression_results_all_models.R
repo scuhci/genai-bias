@@ -156,10 +156,12 @@ analyze_one <- function(df, model_name, group_key, group_pretty) {
 plot_one_model_group <- function(df, model_name, group_key, group_pretty, out_pdf) {
   bls_col   <- paste0("bls_p_",   group_key)
   genai_col <- paste0("genai_p_", group_key)
-  bls_med   <- median(df[[bls_col]], na.rm = TRUE)
 
-  m <- fit_quasi_centered(df, bls_col, genai_col, center_at = bls_med)
+  # --- REGULAR regression: center at 0.5 (no median-centering / no trimming / no robust) ---
+  fml <- as.formula(paste0(genai_col, " ~ I(", bls_col, " - 0.5)"))
+  m <- glm(fml, family = quasibinomial, data = df, weights = df$genai_n)
 
+  # axes & observed range
   xlim <- c(0, 1); ylim <- c(0, 1)
   xvals <- df[[bls_col]]
   min_bls <- min(xvals, na.rm = TRUE); max_bls <- max(xvals, na.rm = TRUE)
@@ -174,14 +176,17 @@ plot_one_model_group <- function(df, model_name, group_key, group_pretty, out_pd
 
   title(main = sprintf("%s: %s representation vs. BLS", model_name, group_pretty), line = 2.3)
 
+  # grid
   xticks <- axTicks(1); yticks <- axTicks(2)
   abline(v = xticks, col = "grey70", lty = "dotted", lwd = 0.8)
   abline(h = yticks, col = "grey70", lty = "dotted", lwd = 0.8)
 
+  # shade outside observed range
   usr <- par("usr"); yr <- diff(usr[3:4])
   rect(usr[1], usr[3], min_bls, usr[4], col = rgb(0.5, 0.5, 0.5, 0.25), border = NA)
   rect(max_bls, usr[3], usr[2], usr[4], col = rgb(0.5, 0.5, 0.5, 0.25), border = NA)
 
+  # visreg fit (response scale) from the regular model
   vr <- visreg(m, bls_col, scale = "response", plot = FALSE)
   df_fit <- vr$fit; xv <- df_fit[[bls_col]]; ord <- order(xv)
   polygon(x = c(xv[ord], rev(xv[ord])),
@@ -189,20 +194,15 @@ plot_one_model_group <- function(df, model_name, group_key, group_pretty, out_pd
           col = rgb(0.2, 0.4, 0.8, 0.2), border = NA)
   lines(xv[ord], df_fit$visregFit[ord], lwd = 2)
 
+  # points & parity
   points(df[[bls_col]], df[[genai_col]], pch = 20)
   abline(coef = c(0, 1), lty = "dashed")
 
+  # min/max verticals
   abline(v = min_bls, col = "blue",      lwd = 2, lty = "dotted")
   abline(v = max_bls, col = "red",       lwd = 2, lty = "dotted")
-  abline(v = bls_med, col = "darkgreen", lwd = 2, lty = "dotdash")
 
-  # Median pivot label just below the x-axis ticks (inside plotting area)
-  # Median pivot label under x-axis title, left side
-  mtext(paste0("median pivot = ", round(bls_med * 100, 1), "%"),
-        side = 1, line = 5, adj = 0, col = "darkgreen", cex = 0.9)
-
-
-  # Min/Max labels above
+  # Min/Max labels above plotting area
   label_y <- usr[4] + 0.05 * yr
   text(min_bls, label_y, paste0("min observed = ", round(min_bls * 100, 1), "%"),
        col = "blue", cex = 1.05, xpd = NA)

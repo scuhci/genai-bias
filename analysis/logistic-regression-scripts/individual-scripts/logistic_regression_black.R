@@ -1,6 +1,6 @@
 library(visreg)
 
-proportions <- read.csv("../percent-results/results_vs_BLS/averaged_differences_vs_BLS.csv")
+proportions <- read.csv("../../percent-results/results_vs_BLS/averaged_differences_vs_BLS.csv")
 m_black.stereotyped <- glm(
   genai_p_black ~ I(bls_p_black - 0.5),
   family = quasibinomial,
