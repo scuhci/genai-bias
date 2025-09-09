@@ -296,7 +296,7 @@ for ax, race in zip(axes, RACES):
     ax.grid(axis="x", linestyle=":", linewidth=0.8, alpha=0.7)
 
 # ---- Title (large + bold) and shared x-label ----
-fig.suptitle("Racial Representation Across 41 Occupations", fontsize=40, fontweight="bold", y=0.97)
+fig.suptitle("Per-Occupation Racial Representation vs. BLS", fontsize=40, fontweight="bold", y=0.97)
 fig.supxlabel("Difference from BLS (percentage-point difference)", fontsize=20, y=0.06)
 
 # Single shared legend at top-left under the title

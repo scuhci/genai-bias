@@ -302,7 +302,7 @@ def plot_averages_only_women(by_women, title, outfile, xlab="Difference from BLS
 # ----------------------------
 plot_matrix_women(
     by_women=by_women,
-    title="Women’s Representation Across 41 Occupations",
+    title="Per-Occupation Gender Representation vs. BLS",
     outfile=OUTPUT_PDF_WOMEN_FULL,
 )
 

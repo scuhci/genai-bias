@@ -157,56 +157,63 @@ plot_one_model_group <- function(df, model_name, group_key, group_pretty, out_pd
   bls_col   <- paste0("bls_p_",   group_key)
   genai_col <- paste0("genai_p_", group_key)
 
-  # --- REGULAR regression: center at 0.5 (no median-centering / no trimming / no robust) ---
+  # Regular regression (center at 0.5) for visuals
   fml <- as.formula(paste0(genai_col, " ~ I(", bls_col, " - 0.5)"))
   m <- glm(fml, family = quasibinomial, data = df, weights = df$genai_n)
 
-  # axes & observed range
-  xlim <- c(0, 1); ylim <- c(0, 1)
-  xvals <- df[[bls_col]]
-  min_bls <- min(xvals, na.rm = TRUE); max_bls <- max(xvals, na.rm = TRUE)
+  # Observed range
+  xvals   <- df[[bls_col]]
+  min_bls <- min(xvals, na.rm = TRUE)
+  max_bls <- max(xvals, na.rm = TRUE)
 
+  # Device
   pdf(out_pdf, width = 8, height = 6); on.exit(dev.off(), add = TRUE)
   par(cex.main = 1.5, cex.lab = 1.3, cex.axis = 1.2, mar = c(7, 5, 4.5, 2))
 
-  plot(NA, xlim = xlim, ylim = ylim,
-       xlab = paste("BLS proportion", group_pretty),
+  # Percent axes
+  plot(NA, xlim = c(0, 100), ylim = c(0, 100),
+       xlab = paste("BLS percent", group_pretty),
        ylab = sprintf("%s percent %s", model_name, group_pretty),
        main = NULL)
 
   title(main = sprintf("%s: %s representation vs. BLS", model_name, group_pretty), line = 2.3)
 
-  # grid
+  # Grid
   xticks <- axTicks(1); yticks <- axTicks(2)
   abline(v = xticks, col = "grey70", lty = "dotted", lwd = 0.8)
   abline(h = yticks, col = "grey70", lty = "dotted", lwd = 0.8)
 
-  # shade outside observed range
+  # Shade outside observed range (convert to %)
   usr <- par("usr"); yr <- diff(usr[3:4])
-  rect(usr[1], usr[3], min_bls, usr[4], col = rgb(0.5, 0.5, 0.5, 0.25), border = NA)
-  rect(max_bls, usr[3], usr[2], usr[4], col = rgb(0.5, 0.5, 0.5, 0.25), border = NA)
+  rect(usr[1], usr[3], min_bls*100, usr[4], col = rgb(0.5, 0.5, 0.5, 0.25), border = NA)
+  rect(max_bls*100, usr[3], usr[2], usr[4], col = rgb(0.5, 0.5, 0.5, 0.25), border = NA)
 
-  # visreg fit (response scale) from the regular model
+  # Smooth curve from visreg (converted to %)
   vr <- visreg(m, bls_col, scale = "response", plot = FALSE)
-  df_fit <- vr$fit; xv <- df_fit[[bls_col]]; ord <- order(xv)
-  polygon(x = c(xv[ord], rev(xv[ord])),
-          y = c(df_fit$visregLwr[ord], rev(df_fit$visregUpr[ord])),
-          col = rgb(0.2, 0.4, 0.8, 0.2), border = NA)
-  lines(xv[ord], df_fit$visregFit[ord], lwd = 2)
+  df_fit <- vr$fit
+  xv  <- df_fit[[bls_col]] * 100
+  ord <- order(xv)
+  polygon(
+    x = c(xv[ord], rev(xv[ord])),
+    y = c(df_fit$visregLwr[ord]*100, rev(df_fit$visregUpr[ord]*100)),
+    col = rgb(0.2, 0.4, 0.8, 0.2), border = NA
+  )
+  lines(xv[ord], df_fit$visregFit[ord]*100, lwd = 2)
 
-  # points & parity
-  points(df[[bls_col]], df[[genai_col]], pch = 20)
+  # Points (convert to %)
+  points(df[[bls_col]]*100, df[[genai_col]]*100, pch = 20)
+
+  # Parity y = x (works in % space)
   abline(coef = c(0, 1), lty = "dashed")
 
-  # min/max verticals
-  abline(v = min_bls, col = "blue",      lwd = 2, lty = "dotted")
-  abline(v = max_bls, col = "red",       lwd = 2, lty = "dotted")
+  # Min/Max verticals (in %)
+  abline(v = min_bls*100, col = "blue", lwd = 2, lty = "dotted")
+  abline(v = max_bls*100, col = "red",  lwd = 2, lty = "dotted")
 
-  # Min/Max labels above plotting area
-  label_y <- usr[4] + 0.05 * yr
-  text(min_bls, label_y, paste0("min observed = ", round(min_bls * 100, 1), "%"),
+  # Min/Max labels above
+  text(min_bls*100, usr[4] + 0.05*yr, paste0("min observed = ", round(min_bls*100, 1), "%"),
        col = "blue", cex = 1.05, xpd = NA)
-  text(max_bls, label_y, paste0("max observed = ", round(max_bls * 100, 1), "%"),
+  text(max_bls*100, usr[4] + 0.05*yr, paste0("max observed = ", round(max_bls*100, 1), "%"),
        col = "red",  cex = 1.05, xpd = NA)
 }
 
