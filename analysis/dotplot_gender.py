@@ -203,9 +203,8 @@ colors  = {
 }
 
 def plot_matrix_women(by_women, title, outfile, xlab="Difference from BLS (percentage-point difference)"):
-    # Single panel, women only
-    fig, ax = plt.subplots(1, 1, figsize=(5, 18), sharey=True)
-
+    # Make it wide: increase width substantially
+    fig, ax = plt.subplots(1, 1, figsize=(12, 10))  # wider plot
     wide = by_women  # index: ["__AVG__", *occ_keys]
     ykeys   = ["__AVG__"] + [k for k in wide.index if k != "__AVG__"]
     ylabels = ["Average"] + [clean_label_map.get(k, nice_from_key(k)) for k in ordered_occ_keys]
