@@ -41,6 +41,21 @@ groups <- list(
   list(key = "women",    pretty = "Women",    file = file.path(plot_dir, "avg_logreg_women.pdf"))
 )
 
+# Build response-scale fitted curve + 95% CI using predict()
+build_curve <- function(model, xseq, bls_col, center_at) {
+  nd <- data.frame(x = xseq)
+  names(nd) <- bls_col
+  nd[[bls_col]] <- xseq
+  # Predict on link scale to get SEs, then transform
+  pr <- predict(model, newdata = nd, type = "link", se.fit = TRUE)
+  eta <- pr$fit
+  se  <- pr$se.fit
+  fit <- plogis(eta)
+  lwr <- plogis(eta - 1.96 * se)
+  upr <- plogis(eta + 1.96 * se)
+  data.frame(x = xseq, fit = fit, lwr = lwr, upr = upr)
+}
+
 # ----------------------------
 # Vectorized helpers (stars & nuanced codes)
 # ----------------------------
@@ -170,62 +185,53 @@ analyze_one <- function(df, group_key, group_pretty) {
   )
 }
 
-# ----------------------------
-# Plotter (annotates median pivot)
-# ----------------------------
 plot_one <- function(group, pretty_group, out_pdf) {
   bls_col   <- paste0("bls_p_", group)
   genai_col <- paste0("genai_p_", group)
 
-  bls_med <- median(proportions[[bls_col]], na.rm = TRUE)
+  # Drop rows with NAs in the columns we need
+  df <- proportions[complete.cases(proportions[, c(bls_col, genai_col, "genai_n")]), ]
 
-  # Fit raw centered model for visreg
-  m <- fit_quasi_centered(proportions, bls_col, genai_col, center_at = bls_med)
+  bls_med <- median(df[[bls_col]], na.rm = TRUE)
+
+  # Fit raw centered model for curve
+  m <- fit_quasi_centered(df, bls_col, genai_col, center_at = bls_med)
 
   # axes & observed range
   xlim <- c(0, 1); ylim <- c(0, 1)
-  xvals   <- proportions[[bls_col]]
-  min_bls <- min(xvals, na.rm = TRUE)
-  max_bls <- max(xvals, na.rm = TRUE)
+  min_bls <- min(df[[bls_col]], na.rm = TRUE)
+  max_bls <- max(df[[bls_col]], na.rm = TRUE)
+
+  # Smooth grid only over observed span (looks better than 0–1 if data are narrow)
+  xseq <- seq(min_bls, max_bls, length.out = 200)
+  curve_df <- build_curve(m, xseq, bls_col, bls_med)
 
   pdf(out_pdf, width = 8, height = 6); on.exit(dev.off(), add = TRUE)
-  par(cex.main = 1.5, cex.lab = 1.3, cex.axis = 1.3, mar = c(6, 5, 4.5, 2))
+  par(cex.main = 1.5, cex.lab = 1.3, cex.axis = 1.3, mar = c(7, 5, 4.5, 2))
 
   plot(NA, xlim = xlim, ylim = ylim,
        xlab = paste("BLS proportion", pretty_group),
-       ylab = paste("Average proportion", pretty_group),
+       ylab = sprintf("Average percent %s", pretty_group),
        main = NULL)
 
-  title(
-    main = paste0("Average ", pretty_group, " representation across 41 occupations"),
-    line = 2.5
-  )
+  title(main = sprintf("Average %s representation vs. BLS", pretty_group), line = 2.3)
 
-  # grid
   xticks <- axTicks(1); yticks <- axTicks(2)
   abline(v = xticks, col = "grey70", lty = "dotted", lwd = 0.8)
   abline(h = yticks, col = "grey70", lty = "dotted", lwd = 0.8)
 
-  # shade outside observed range
   usr <- par("usr"); yr <- diff(usr[3:4])
   rect(usr[1], usr[3], min_bls, usr[4], col = rgb(0.5, 0.5, 0.5, 0.25), border = NA)
   rect(max_bls, usr[3], usr[2], usr[4], col = rgb(0.5, 0.5, 0.5, 0.25), border = NA)
 
-  # visreg fit (response scale)
-  vr <- visreg(m, bls_col, scale = "response", plot = FALSE)
-  df_fit <- vr$fit
-  xv <- df_fit[[bls_col]]; ord <- order(xv)
-  polygon(
-    x = c(xv[ord], rev(xv[ord])),
-    y = c(df_fit$visregLwr[ord], rev(df_fit$visregUpr[ord])),
-    col = rgb(0.2, 0.4, 0.8, 0.2), border = NA
-  )
-  lines(xv[ord], df_fit$visregFit[ord], lwd = 2)
+  # CI band + fitted line (from predict)
+  polygon(x = c(curve_df$x, rev(curve_df$x)),
+          y = c(curve_df$lwr, rev(curve_df$upr)),
+          col = rgb(0.2, 0.4, 0.8, 0.2), border = NA)
+  lines(curve_df$x, curve_df$fit, lwd = 2)
 
-  # points
-  points(proportions[[bls_col]], proportions[[genai_col]], pch = 20)
-
-  # parity
+  # Points & parity
+  points(df[[bls_col]], df[[genai_col]], pch = 20)
   abline(coef = c(0, 1), lty = "dashed")
 
   # min/max & median verticals
@@ -233,14 +239,20 @@ plot_one <- function(group, pretty_group, out_pdf) {
   abline(v = max_bls, col = "red",       lwd = 2, lty = "dotted")
   abline(v = bls_med, col = "darkgreen", lwd = 2, lty = "dotdash")
 
-  # labels above plotting region
-  min_label <- paste0("min observed = ", round(min_bls * 100, 1), "%")
-  max_label <- paste0("max observed = ", round(max_bls * 100, 1), "%")
-  med_label <- paste0("median pivot = ", round(bls_med * 100, 1), "%")
+  # Median pivot label just below the x-axis ticks (inside plotting area)
+  old_xpd <- par("xpd"); par(xpd = NA)
+  text(x = bls_med,
+       y = usr[3] - 0.03 * yr,
+       labels = paste0("median pivot = ", round(bls_med * 100, 1), "%"),
+       col = "darkgreen", cex = 1.1)
+  par(xpd = old_xpd)
+
+  # Min/Max labels above
   label_y <- usr[4] + 0.05 * yr
-  text(min_bls, label_y, min_label, col = "blue",      cex = 1.1, xpd = NA)
-  text(max_bls, label_y, max_label, col = "red",       cex = 1.1, xpd = NA)
-  text(bls_med, label_y, med_label, col = "darkgreen", cex = 1.1, xpd = NA)
+  text(min_bls, label_y, paste0("min observed = ", round(min_bls * 100, 1), "%"),
+       col = "blue", cex = 1.1, xpd = NA)
+  text(max_bls, label_y, paste0("max observed = ", round(max_bls * 100, 1), "%"),
+       col = "red",  cex = 1.1, xpd = NA)
 }
 
 # ----------------------------
