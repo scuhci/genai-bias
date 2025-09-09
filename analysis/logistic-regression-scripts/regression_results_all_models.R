@@ -197,12 +197,10 @@ plot_one_model_group <- function(df, model_name, group_key, group_pretty, out_pd
   abline(v = bls_med, col = "darkgreen", lwd = 2, lty = "dotdash")
 
   # Median pivot label just below the x-axis ticks (inside plotting area)
-  old_xpd <- par("xpd"); par(xpd = NA)
-  text(x = bls_med,
-       y = usr[3] - 0.03 * yr,
-       labels = paste0("median pivot = ", round(bls_med * 100, 1), "%"),
-       col = "darkgreen", cex = 1.0)
-  par(xpd = old_xpd)
+  # Median pivot label under x-axis title, left side
+  mtext(paste0("median pivot = ", round(bls_med * 100, 1), "%"),
+        side = 1, line = 5, adj = 0, col = "darkgreen", cex = 0.9)
+
 
   # Min/Max labels above
   label_y <- usr[4] + 0.05 * yr
