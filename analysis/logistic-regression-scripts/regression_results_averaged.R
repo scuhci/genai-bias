@@ -1,10 +1,7 @@
 # ============================
-# Averaged diffs: single CSV
-# (quasibinomial GLM; FDR BH)
-# + Median-centering (per group)
-# + Robust & Trimmed checks
-# + Nuanced probability-scale codes
-# + Plot generation
+# Averaged diffs: single CSV (FIXED)
+# Ensures raw points are plotted in probability space (0–1),
+# regardless of whether inputs are proportions, percents, or logits.
 # ============================
 
 library(visreg)
@@ -15,7 +12,6 @@ library(readr)
 library(stats)
 library(tools)
 
-# Robust option (graceful fallback if not installed)
 .robust_ok <- requireNamespace("robustbase", quietly = TRUE)
 
 # ----------------------------
@@ -41,24 +37,28 @@ groups <- list(
   list(key = "women",    pretty = "Women",    file = file.path(plot_dir, "avg_logreg_women.pdf"))
 )
 
-# Build response-scale fitted curve + 95% CI using predict()
-build_curve <- function(model, xseq, bls_col, center_at) {
-  nd <- data.frame(x = xseq)
-  names(nd) <- bls_col
-  nd[[bls_col]] <- xseq
-  # Predict on link scale to get SEs, then transform
-  pr <- predict(model, newdata = nd, type = "link", se.fit = TRUE)
-  eta <- pr$fit
-  se  <- pr$se.fit
-  fit <- plogis(eta)
-  lwr <- plogis(eta - 1.96 * se)
-  upr <- plogis(eta + 1.96 * se)
-  data.frame(x = xseq, fit = fit, lwr = lwr, upr = upr)
+# ----------------------------
+# Helpers
+# ----------------------------
+
+# Convert any vector to proportions in [0,1]:
+# - If already in [0,1], return as-is
+# - If in [0,100], convert to [0,1]
+# - Else assume logits and apply plogis
+normalize_to_prop <- function(v) {
+  if (all(is.na(v))) return(v)
+  r <- range(v, na.rm = TRUE)
+  if (r[1] >= 0 && r[2] <= 1) {
+    v
+  } else if (r[1] >= 0 && r[2] <= 100) {
+    v / 100
+  } else {
+    plogis(v)
+  }
 }
 
-# ----------------------------
-# Vectorized helpers (stars & nuanced codes)
-# ----------------------------
+invlogit <- function(z) plogis(z)
+
 star_fun <- function(p) dplyr::case_when(
   p < 0.001 ~ "***",
   p < 0.01  ~ "**",
@@ -66,10 +66,7 @@ star_fun <- function(p) dplyr::case_when(
   TRUE      ~ ""
 )
 
-invlogit <- function(z) plogis(z)
-
-# alpha: magnitude on probability scale (Δ at pivot in proportion units)
-# bins at 0.5pp, 1.5pp, 3.0pp
+# alpha magnitude coding (pp = percentage points on probability scale)
 code_alpha_pp <- function(delta_pp) {
   a <- abs(delta_pp)
   out <- ifelse(a < 0.005, "0", "")
@@ -81,7 +78,7 @@ code_alpha_pp <- function(delta_pp) {
   out
 }
 
-# beta: average local response-scale slope deviation from 1 over central range
+# beta deviation coding (avg local response-scale slope dev from 1)
 code_beta_dev <- function(beta_dev) {
   d <- abs(beta_dev)
   out <- ifelse(d < 0.05, "0", "")
@@ -93,9 +90,7 @@ code_beta_dev <- function(beta_dev) {
   out
 }
 
-# ----------------------------
 # Core model fitters (median-centered)
-# ----------------------------
 fit_quasi_centered <- function(df, bls_col, genai_col, center_at, weights_col = "genai_n") {
   fml <- as.formula(paste0(genai_col, " ~ I(", bls_col, " - ", signif(center_at, 15), ")"))
   glm(fml, family = quasibinomial, data = df, weights = df[[weights_col]])
@@ -125,35 +120,58 @@ wald_rows <- function(model, beta_ref = 1) {
        beta=beta,   se_beta=se_beta,   p_beta=p_beta)
 }
 
+# Build response-scale fitted curve + 95% CI using predict()
+build_curve <- function(model, xseq, bls_col) {
+  nd <- data.frame(x = xseq); names(nd) <- bls_col
+  pr <- predict(model, newdata = nd, type = "link", se.fit = TRUE)
+  eta <- pr$fit; se <- pr$se.fit
+  data.frame(
+    x   = xseq,
+    fit = plogis(eta),
+    lwr = plogis(eta - 1.96 * se),
+    upr = plogis(eta + 1.96 * se)
+  )
+}
+
 # ----------------------------
-# Analyzer for one group (Raw / Trimmed5 / Robust)
+# Analyzer for one group (Raw / Trimmed5 / Robust), with normalization
 # ----------------------------
 analyze_one <- function(df, group_key, group_pretty) {
-  bls_col   <- paste0("bls_p_",   group_key)
-  genai_col <- paste0("genai_p_", group_key)
+  bls_col_raw   <- paste0("bls_p_",   group_key)
+  genai_col_raw <- paste0("genai_p_", group_key)
 
   # required columns check
-  req <- c("genai_n", bls_col, genai_col)
+  req <- c("genai_n", bls_col_raw, genai_col_raw)
   miss <- setdiff(req, names(df))
   if (length(miss)) stop("Missing required columns for group ", group_key, ": ", paste(miss, collapse=", "))
 
-  # pivot: median BLS for this group
-  bls_med <- median(df[[bls_col]], na.rm = TRUE)
+  # Normalize to probability space
+  df2 <- df %>%
+    mutate(
+      bls_prop   = normalize_to_prop(.data[[bls_col_raw]]),
+      genai_prop = normalize_to_prop(.data[[genai_col_raw]])
+    )
+
+  bls_col   <- "bls_prop"
+  genai_col <- "genai_prop"
+
+  # pivot: median BLS for this group (on probability scale)
+  bls_med <- median(df2[[bls_col]], na.rm = TRUE)
 
   # Raw (centered)
-  m_raw <- fit_quasi_centered(df, bls_col, genai_col, bls_med); raw_w <- wald_rows(m_raw)
+  m_raw <- fit_quasi_centered(df2, bls_col, genai_col, bls_med); raw_w <- wald_rows(m_raw)
 
   # Trimmed5 by BLS (same pivot for comparability)
-  q_lo <- quantile(df[[bls_col]], 0.05, na.rm = TRUE)
-  q_hi <- quantile(df[[bls_col]], 0.95, na.rm = TRUE)
-  df_trim <- df %>% filter(.data[[bls_col]] >= q_lo, .data[[bls_col]] <= q_hi)
+  q_lo <- quantile(df2[[bls_col]], 0.05, na.rm = TRUE)
+  q_hi <- quantile(df2[[bls_col]], 0.95, na.rm = TRUE)
+  df_trim <- df2 %>% filter(.data[[bls_col]] >= q_lo, .data[[bls_col]] <= q_hi)
   m_trim <- fit_quasi_centered(df_trim, bls_col, genai_col, bls_med); trim_w <- wald_rows(m_trim)
 
   # Robust (primary)
-  m_rob <- fit_robust_centered(df, bls_col, genai_col, bls_med)
+  m_rob <- fit_robust_centered(df2, bls_col, genai_col, bls_med)
   rob_w <- if (!is.null(m_rob)) wald_rows(m_rob) else raw_w
 
-  # Interpretable effect metrics
+  # Interpretable effect metrics (probability scale)
   alpha_pp_raw  <- invlogit(raw_w$alpha)  - bls_med
   alpha_pp_trim <- invlogit(trim_w$alpha) - bls_med
   alpha_pp_rob  <- invlogit(rob_w$alpha)  - bls_med
@@ -166,9 +184,9 @@ analyze_one <- function(df, group_key, group_pretty) {
     slope <- beta_hat * mu * (1 - mu)
     mean(slope - 1, na.rm = TRUE)
   }
-  beta_dev_raw  <- beta_dev_calc(raw_w$alpha,  raw_w$beta,  df)
+  beta_dev_raw  <- beta_dev_calc(raw_w$alpha,  raw_w$beta,  df2)
   beta_dev_trim <- beta_dev_calc(trim_w$alpha, trim_w$beta, df_trim)
-  beta_dev_rob  <- beta_dev_calc(rob_w$alpha,  rob_w$beta,  df)
+  beta_dev_rob  <- beta_dev_calc(rob_w$alpha,  rob_w$beta,  df2)
 
   tibble(
     group = group_pretty,
@@ -185,48 +203,46 @@ analyze_one <- function(df, group_key, group_pretty) {
   )
 }
 
-# If not already present in your file:
-build_curve <- function(model, xseq, bls_col) {
-  nd <- data.frame(x = xseq); names(nd) <- bls_col
-  pr <- predict(model, newdata = nd, type = "link", se.fit = TRUE)
-  eta <- pr$fit; se <- pr$se.fit
-  data.frame(
-    x   = xseq,
-    fit = plogis(eta),
-    lwr = plogis(eta - 1.96 * se),
-    upr = plogis(eta + 1.96 * se)
-  )
-}
-
+# ----------------------------
+# Plotter (points & curve drawn in % space), with normalization
+# ----------------------------
 plot_one <- function(group, pretty_group, out_pdf) {
-  bls_col   <- paste0("bls_p_", group)
-  genai_col <- paste0("genai_p_", group)
+  bls_col_raw   <- paste0("bls_p_", group)
+  genai_col_raw <- paste0("genai_p_", group)
 
   # Complete cases for plotting
-  df <- proportions[complete.cases(proportions[, c(bls_col, genai_col, "genai_n")]), ]
+  df0 <- proportions[complete.cases(proportions[, c(bls_col_raw, genai_col_raw, "genai_n")]), ]
+
+  # Normalize to probability space for BOTH axes and model fit
+  df <- df0 %>%
+    mutate(
+      bls_prop   = normalize_to_prop(.data[[bls_col_raw]]),
+      genai_prop = normalize_to_prop(.data[[genai_col_raw]])
+    )
 
   # Regular regression (center at 0.5) for visuals
-  fml <- as.formula(paste0(genai_col, " ~ I(", bls_col, " - 0.5)"))
-  m <- glm(fml, family = quasibinomial, data = df, weights = df$genai_n)
+  m <- glm(genai_prop ~ I(bls_prop - 0.5),
+           family = quasibinomial,
+           data = df,
+           weights = df$genai_n)
 
-  # Observed range
-  min_bls <- min(df[[bls_col]], na.rm = TRUE)
-  max_bls <- max(df[[bls_col]], na.rm = TRUE)
+  # Observed range on probability scale
+  min_bls <- min(df$bls_prop, na.rm = TRUE)
+  max_bls <- max(df$bls_prop, na.rm = TRUE)
 
   # Curve over observed span
   xseq <- seq(min_bls, max_bls, length.out = 200)
-  curve_df <- build_curve(m, xseq, bls_col)
+  curve_df <- build_curve(m, xseq, "bls_prop")
 
   # Device
   pdf(out_pdf, width = 8, height = 6); on.exit(dev.off(), add = TRUE)
-  par(cex.main = 1.5, cex.lab = 1.3, cex.axis = 1.3, mar = c(7, 5, 4.5, 2))
+  par(cex.main = 1.5, cex.lab = 1.3, cex.axis = 1.2, mar = c(7, 5, 4.5, 2))
 
   # Percent axes
   plot(NA, xlim = c(0, 100), ylim = c(0, 100),
        xlab = paste("BLS percent", pretty_group),
        ylab = sprintf("Average percent %s", pretty_group),
        main = NULL)
-
   title(main = sprintf("Average %s representation vs. BLS", pretty_group), line = 2.3)
 
   # Grid
@@ -245,8 +261,8 @@ plot_one <- function(group, pretty_group, out_pdf) {
           col = rgb(0.2, 0.4, 0.8, 0.2), border = NA)
   lines(curve_df$x*100, curve_df$fit*100, lwd = 2)
 
-  # Points (convert to %)
-  points(df[[bls_col]]*100, df[[genai_col]]*100, pch = 20)
+  # Points in % space (optionally add tiny jitter to reduce stacking further)
+  points(df$bls_prop*100, df$genai_prop*100, pch = 20)
 
   # Parity line
   abline(coef = c(0, 1), lty = "dashed")
@@ -257,9 +273,9 @@ plot_one <- function(group, pretty_group, out_pdf) {
 
   # Min/Max labels above
   text(min_bls*100, usr[4] + 0.05*yr, paste0("min observed = ", round(min_bls*100, 1), "%"),
-       col = "blue", cex = 1.1, xpd = NA)
+       col = "blue", cex = 1.05, xpd = NA)
   text(max_bls*100, usr[4] + 0.05*yr, paste0("max observed = ", round(max_bls*100, 1), "%"),
-       col = "red",  cex = 1.1, xpd = NA)
+       col = "red",  cex = 1.05, xpd = NA)
 }
 
 # ----------------------------
