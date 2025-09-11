@@ -12,7 +12,7 @@ def detect_encoding(file_path):
         return result['encoding']
 
 # Paths
-directory_path = "../../profiles/mistral"
+directory_path = "../../profiles/openai"
 bls_path = "../../profiles/bls-baselines.csv"
 
 # Load BLS baseline data
@@ -62,7 +62,7 @@ with open('output.csv', 'w', newline='') as file:
             genai_p_asian    = round(genai_asian    / genai_n, 4)
 
             # ---- Strip "_deepseek.csv" to get search term ----
-            career_key_raw = filename.replace("profile_mistral.csv", "")
+            career_key_raw = filename.replace("profiles_openai.csv", "")
 
             # Lookup BLS values
             bls_row = bls_df[bls_df['genai_bias_search_term'] == career_key_raw]

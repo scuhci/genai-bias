@@ -49,8 +49,8 @@ averaged = (
     })
 )
 
-# Round averages to 1 decimal place
-averaged[avg_cols] = averaged[avg_cols].round(1)
+# Round averages to 3 decimal place
+averaged[avg_cols] = averaged[avg_cols].round(3)
 
 # ----------------------------
 # Reorder columns as requested

@@ -17,7 +17,7 @@ library(tools)
 # ----------------------------
 # Load data (single averaged file)
 # ----------------------------
-in_csv <- "analysis/percent-results/results_vs_BLS/averaged_differences_vs_BLS.csv"
+in_csv <- "analysis/logistic-regression-scripts/results/csvs/averaged_logreg.csv"
 proportions <- suppressMessages(read_csv(in_csv, show_col_types = FALSE))
 
 # ----------------------------
@@ -206,39 +206,43 @@ analyze_one <- function(df, group_key, group_pretty) {
 # ----------------------------
 # Plotter (points & curve drawn in % space), with normalization
 # ----------------------------
-plot_one <- function(group, pretty_group, out_pdf) {
-  bls_col_raw   <- paste0("bls_p_", group)
-  genai_col_raw <- paste0("genai_p_", group)
+plot_one <- function(group, pretty_group, out_pdf, jitter_pp = 0.0) {
+  stopifnot(requireNamespace("visreg", quietly = TRUE))
 
-  # Complete cases for plotting
-  df0 <- proportions[complete.cases(proportions[, c(bls_col_raw, genai_col_raw, "genai_n")]), ]
+  bls_col   <- paste0("bls_p_", group)
+  genai_col <- paste0("genai_p_", group)
 
-  # Normalize to probability space for BOTH axes and model fit
-  df <- df0 %>%
-    mutate(
-      bls_prop   = normalize_to_prop(.data[[bls_col_raw]]),
-      genai_prop = normalize_to_prop(.data[[genai_col_raw]])
-    )
+  # Keep complete rows
+  df0 <- proportions[complete.cases(proportions[, c(bls_col, genai_col, "genai_n")]), ]
 
-  # Regular regression (center at 0.5) for visuals
+  # ---- Scale logic: fit on proportions [0,1]; draw on percents [0,100] ----
+  to_prop <- function(x) if (max(x, na.rm = TRUE) > 1) x/100 else x
+  bls_prop   <- to_prop(df0[[bls_col]])
+  genai_prop <- to_prop(df0[[genai_col]])
+
+  # Optional tiny jitter (in percentage points, applied on the plotted % only)
+  # e.g., jitter_pp = 0.15 means ~±0.15pp vertical jitter
+  genai_pct <- genai_prop * 100
+  if (jitter_pp > 0) {
+    set.seed(42)
+    genai_pct <- genai_pct + stats::rnorm(length(genai_pct), sd = jitter_pp)
+    genai_pct <- pmax(pmin(genai_pct, 100), 0)  # clamp to 0–100 just in case
+  }
+
+  # Fit model in proportion space
   m <- glm(genai_prop ~ I(bls_prop - 0.5),
            family = quasibinomial,
-           data = df,
-           weights = df$genai_n)
+           weights = df0$genai_n)
 
-  # Observed range on probability scale
-  min_bls <- min(df$bls_prop, na.rm = TRUE)
-  max_bls <- max(df$bls_prop, na.rm = TRUE)
-
-  # Curve over observed span
-  xseq <- seq(min_bls, max_bls, length.out = 200)
-  curve_df <- build_curve(m, xseq, "bls_prop")
+  # Observed range (proportion scale)
+  min_bls <- min(bls_prop, na.rm = TRUE)
+  max_bls <- max(bls_prop, na.rm = TRUE)
 
   # Device
   pdf(out_pdf, width = 8, height = 6); on.exit(dev.off(), add = TRUE)
   par(cex.main = 1.5, cex.lab = 1.3, cex.axis = 1.2, mar = c(7, 5, 4.5, 2))
 
-  # Percent axes
+  # Set up percent axes
   plot(NA, xlim = c(0, 100), ylim = c(0, 100),
        xlab = paste("BLS percent", pretty_group),
        ylab = sprintf("Average percent %s", pretty_group),
@@ -250,21 +254,27 @@ plot_one <- function(group, pretty_group, out_pdf) {
   abline(v = xticks, col = "grey70", lty = "dotted", lwd = 0.8)
   abline(h = yticks, col = "grey70", lty = "dotted", lwd = 0.8)
 
-  # Shade outside observed range (convert to %)
+  # Shade outside observed BLS range (convert to %)
   usr <- par("usr"); yr <- diff(usr[3:4])
   rect(usr[1], usr[3], min_bls*100, usr[4], col = rgb(0.5, 0.5, 0.5, 0.25), border = NA)
   rect(max_bls*100, usr[3], usr[2], usr[4], col = rgb(0.5, 0.5, 0.5, 0.25), border = NA)
 
-  # CI band + fitted line in % space
-  polygon(x = c(curve_df$x*100, rev(curve_df$x*100)),
-          y = c(curve_df$lwr*100, rev(curve_df$upr*100)),
-          col = rgb(0.2, 0.4, 0.8, 0.2), border = NA)
-  lines(curve_df$x*100, curve_df$fit*100, lwd = 2)
+  # Smooth curve (visreg on response scale), then convert to %
+  vr <- visreg::visreg(m, "bls_prop", scale = "response", plot = FALSE)
+  df_fit <- vr$fit
+  xv  <- df_fit$bls_prop * 100
+  ord <- order(xv)
+  polygon(
+    x = c(xv[ord], rev(xv[ord])),
+    y = c(df_fit$visregLwr[ord]*100, rev(df_fit$visregUpr[ord]*100)),
+    col = rgb(0.2, 0.4, 0.8, 0.2), border = NA
+  )
+  lines(xv[ord], df_fit$visregFit[ord]*100, lwd = 2)
 
-  # Points in % space (optionally add tiny jitter to reduce stacking further)
-  points(df$bls_prop*100, df$genai_prop*100, pch = 20)
+  # Raw points on % scale (x from bls_prop, y from (optionally jittered) genai_pct)
+  points(bls_prop*100, genai_pct, pch = 20)
 
-  # Parity line
+  # Parity line y = x (in % space)
   abline(coef = c(0, 1), lty = "dashed")
 
   # Min/Max verticals (in %)
