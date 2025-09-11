@@ -65,8 +65,20 @@ star_fun <- function(p) dplyr::case_when(
   p < 0.05  ~ "*",
   TRUE      ~ ""
 )
+# alpha magnitude coding on the PERCENT scale (units = percentage points)
+# thresholds: 0.5pp / 1.5pp / 3.0pp
+code_alpha_pp_pct <- function(delta_pp_pct) {
+  a <- abs(delta_pp_pct)
+  out <- ifelse(a < 0.5, "0", "")
+  out <- ifelse(a >= 0.5 & a < 3,  "±",  out)
+  out <- ifelse(a >= 3 & a < 10, "±±", out)
+  out <- ifelse(a >= 10,           "±±±",out)
+  out <- ifelse(delta_pp_pct > 0 & out != "0", gsub("±", "+", out), out)
+  out <- ifelse(delta_pp_pct < 0 & out != "0", gsub("±", "-", out), out)
+  out
+}
 
-# alpha magnitude coding (pp = percentage points on probability scale)
+# DEPRECATED alpha magnitude coding (pp = percentage points on probability scale)
 code_alpha_pp <- function(delta_pp) {
   a <- abs(delta_pp)
   out <- ifelse(a < 0.005, "0", "")
@@ -305,12 +317,15 @@ results <- results %>%
 # Final table with nuanced codes and human-friendly columns
 final_table <- results %>%
   mutate(
+    alpha_effect_pp_pct = round(alpha_effect_pp * 100, 2),  # convert to percentage points
+    beta_dev_round      = round(beta_dev, 3),
+
     alpha_fmt  = paste0(round(alpha, 3), star_fun(p_alpha_fdr)),
     beta_fmt   = paste0(round(beta,  3), star_fun(p_beta_fdr)),
-    alpha_code = code_alpha_pp(alpha_effect_pp),
-    beta_code  = code_beta_dev(beta_dev),
-    alpha_effect_pp_pct = round(alpha_effect_pp * 100, 2),
-    beta_dev_round = round(beta_dev, 3)
+
+    # NOW: codes based on % scale (pp)
+    alpha_code = code_alpha_pp_pct(alpha_effect_pp_pct),
+    beta_code  = code_beta_dev(beta_dev)
   ) %>%
   select(
     group, method, center_at,
