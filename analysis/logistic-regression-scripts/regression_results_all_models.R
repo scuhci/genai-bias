@@ -61,6 +61,7 @@ star_fun <- function(p) dplyr::case_when(
   TRUE      ~ ""
 )
 invlogit <- function(z) plogis(z)
+
 # alpha magnitude coding on the PERCENT scale (units = percentage points)
 # thresholds: 0.5pp / 1.5pp / 3.0pp
 code_alpha_pp_pct <- function(delta_pp_pct) {
@@ -85,13 +86,19 @@ code_alpha_pp <- function(delta_pp) {
 }
 code_beta_dev <- function(beta_dev) {
   d <- abs(beta_dev)
-  out <- ifelse(d < 0.05, "0", "")
-  out <- ifelse(d >= 0.05 & d < 0.10, "±",  out)
-  out <- ifelse(d >= 0.10 & d < 0.20, "±±", out)
-  out <- ifelse(d >= 0.20,             "±±±",out)
+  out <- ifelse(d < 0.1, "0", "")
+  out <- ifelse(d >= 0.1 & d < 0.5, "±",  out)
+  out <- ifelse(d >= 0.5 & d < 1.5, "±±", out)
+  out <- ifelse(d >= 1.5,             "±±±",out)
   out <- ifelse(beta_dev > 0 & out != "0", gsub("±", "+", out), out)
   out <- ifelse(beta_dev < 0 & out != "0", gsub("±", "-", out), out)
   out
+}
+
+# NEW: signed formatter for display (keeps numeric columns unchanged)
+fmt_signed <- function(x, digits = 2) {
+  s <- formatC(x, format = "f", digits = digits)
+  ifelse(x > 0, paste0("+", s), s)
 }
 
 fit_quasi_centered <- function(df, bls_col, genai_col, center_at, weights_col = "genai_n") {
@@ -242,7 +249,7 @@ for (fp in files) {
   missing <- setdiff(req_cols, names(df))
   if (length(missing)) stop(sprintf("File '%s' missing: %s", basename(fp), paste(missing, collapse = ", ")))
 
-  tmp <- map_dfr(groups, ~ analyze_one(df, model_pretty, .x$key, .x$pretty))
+  tmp <- purrr::map_dfr(groups, ~ analyze_one(df, model_pretty, .x$key, .x$pretty))
   results_list[[length(results_list)+1]] <- tmp
 
   model_slug <- slugify(model_pretty)
@@ -264,6 +271,8 @@ final_table <- raw_results %>%
   mutate(
     # Compute once, then reuse consistently across *all* plots/tables
     alpha_effect_pp_pct = round(alpha_effect_pp * 100, 2),
+
+    # numeric for analysis
     beta_dev_round      = round(beta_dev, 3),
 
     alpha_fmt  = paste0(round(alpha, 3), star_fun(p_alpha_fdr)),
@@ -271,15 +280,19 @@ final_table <- raw_results %>%
 
     # Unified α-coding on % scale everywhere
     alpha_code = code_alpha_pp_pct(alpha_effect_pp_pct),
+
     # Keep β coding as before
-    beta_code  = code_beta_dev(beta_dev)
+    beta_code  = code_beta_dev(beta_dev),
+
+    # NEW: signed string for display (e.g., "+2.03", "-0.89", "0.00")
+    beta_dev_fmt = fmt_signed(beta_dev_round, digits = 2)
   ) %>%
   select(
     model, group, method, center_at,
     alpha, se_alpha, p_alpha, p_alpha_fdr, alpha_fmt,
     alpha_effect_pp_pct, alpha_code,
     beta,  se_beta,  p_beta,  p_beta_fdr,  beta_fmt,
-    beta_dev_round, beta_code
+    beta_dev_round, beta_dev_fmt, beta_code
   ) %>%
   arrange(method, model, group)
 

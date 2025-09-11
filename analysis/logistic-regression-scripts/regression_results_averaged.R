@@ -42,9 +42,6 @@ groups <- list(
 # ----------------------------
 
 # Convert any vector to proportions in [0,1]:
-# - If already in [0,1], return as-is
-# - If in [0,100], convert to [0,1]
-# - Else assume logits and apply plogis
 normalize_to_prop <- function(v) {
   if (all(is.na(v))) return(v)
   r <- range(v, na.rm = TRUE)
@@ -65,8 +62,8 @@ star_fun <- function(p) dplyr::case_when(
   p < 0.05  ~ "*",
   TRUE      ~ ""
 )
+
 # alpha magnitude coding on the PERCENT scale (units = percentage points)
-# thresholds: 0.5pp / 1.5pp / 3.0pp
 code_alpha_pp_pct <- function(delta_pp_pct) {
   a <- abs(delta_pp_pct)
   out <- ifelse(a < 0.5, "0", "")
@@ -78,7 +75,7 @@ code_alpha_pp_pct <- function(delta_pp_pct) {
   out
 }
 
-# DEPRECATED alpha magnitude coding (pp = percentage points on probability scale)
+# DEPRECATED alpha magnitude coding (pp on probability scale)
 code_alpha_pp <- function(delta_pp) {
   a <- abs(delta_pp)
   out <- ifelse(a < 0.005, "0", "")
@@ -93,13 +90,19 @@ code_alpha_pp <- function(delta_pp) {
 # beta deviation coding (avg local response-scale slope dev from 1)
 code_beta_dev <- function(beta_dev) {
   d <- abs(beta_dev)
-  out <- ifelse(d < 0.05, "0", "")
-  out <- ifelse(d >= 0.05 & d < 0.10, "±",  out)
-  out <- ifelse(d >= 0.10 & d < 0.20, "±±", out)
-  out <- ifelse(d >= 0.20,             "±±±",out)
+  out <- ifelse(d < 0.1, "0", "")
+  out <- ifelse(d >= 0.1 & d < 0.5, "±",  out)
+  out <- ifelse(d >= 0.5 & d < 1.5, "±±", out)
+  out <- ifelse(d >= 1.5,             "±±±",out)
   out <- ifelse(beta_dev > 0 & out != "0", gsub("±", "+", out), out)
   out <- ifelse(beta_dev < 0 & out != "0", gsub("±", "-", out), out)
   out
+}
+
+# NEW: signed formatter for display (keeps numeric columns unchanged)
+fmt_signed <- function(x, digits = 2) {
+  s <- formatC(x, format = "f", digits = digits)
+  ifelse(x > 0, paste0("+", s), s)
 }
 
 # Core model fitters (median-centered)
@@ -233,12 +236,11 @@ plot_one <- function(group, pretty_group, out_pdf, jitter_pp = 0.0) {
   genai_prop <- to_prop(df0[[genai_col]])
 
   # Optional tiny jitter (in percentage points, applied on the plotted % only)
-  # e.g., jitter_pp = 0.15 means ~±0.15pp vertical jitter
   genai_pct <- genai_prop * 100
   if (jitter_pp > 0) {
     set.seed(42)
     genai_pct <- genai_pct + stats::rnorm(length(genai_pct), sd = jitter_pp)
-    genai_pct <- pmax(pmin(genai_pct, 100), 0)  # clamp to 0–100 just in case
+    genai_pct <- pmax(pmin(genai_pct, 100), 0)
   }
 
   # Fit model in proportion space
@@ -283,7 +285,7 @@ plot_one <- function(group, pretty_group, out_pdf, jitter_pp = 0.0) {
   )
   lines(xv[ord], df_fit$visregFit[ord]*100, lwd = 2)
 
-  # Raw points on % scale (x from bls_prop, y from (optionally jittered) genai_pct)
+  # Raw points on % scale
   points(bls_prop*100, genai_pct, pch = 20)
 
   # Parity line y = x (in % space)
@@ -317,22 +319,25 @@ results <- results %>%
 # Final table with nuanced codes and human-friendly columns
 final_table <- results %>%
   mutate(
-    alpha_effect_pp_pct = round(alpha_effect_pp * 100, 2),  # convert to percentage points
+    alpha_effect_pp_pct = round(alpha_effect_pp * 100, 2),  # percentage points
     beta_dev_round      = round(beta_dev, 3),
 
     alpha_fmt  = paste0(round(alpha, 3), star_fun(p_alpha_fdr)),
     beta_fmt   = paste0(round(beta,  3), star_fun(p_beta_fdr)),
 
-    # NOW: codes based on % scale (pp)
+    # Codes based on % scale (pp)
     alpha_code = code_alpha_pp_pct(alpha_effect_pp_pct),
-    beta_code  = code_beta_dev(beta_dev)
+    beta_code  = code_beta_dev(beta_dev),
+
+    # NEW: signed string for display (e.g., "+2.03", "-0.89", "0.00")
+    beta_dev_fmt = fmt_signed(beta_dev_round, digits = 2)
   ) %>%
   select(
     group, method, center_at,
     alpha, se_alpha, p_alpha, p_alpha_fdr, alpha_fmt,
     alpha_effect_pp_pct, alpha_code,
     beta,  se_beta,  p_beta,  p_beta_fdr,  beta_fmt,
-    beta_dev_round, beta_code
+    beta_dev_round, beta_dev_fmt, beta_code
   ) %>%
   arrange(method, group)
 
