@@ -7,11 +7,7 @@ import batch_utils as bu
 # ---- Choose ONE of the following input styles ----
 # A) Uniform count per occupation:
 occupations = [
-    "bartender",
-    "custodian",
-    "childcare worker",
-    "insurance sales agent",
-    "customer service representative"
+    # list of occupations
 ]
 per_occupation = 10000
 

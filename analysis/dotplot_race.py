@@ -34,9 +34,11 @@ REQUIRED_COLS = [
     "diff_p_women", "diff_p_white", "diff_p_black", "diff_p_asian", "diff_p_hispanic"
 ]
 
-# Output paths (PDFs)
+# Output paths (PDFs + CSVs)
 OUTPUT_PDF_FULL = "occupational_bias_multirace_avgTop_jitter.pdf"
 OUTPUT_PDF_AVG  = "occupational_bias_averages_only.pdf"
+OUTPUT_CSV_FULL = "occupational_bias_multirace_avgTop_jitter_points.csv"
+OUTPUT_CSV_AVG  = "occupational_bias_averages_only_points.csv"
 
 # ----------------------------
 # Helpers
@@ -45,10 +47,7 @@ def nice_from_key(key: str) -> str:
     """Fallback cleaner if a BLS mapping is missing."""
     s = key.strip()
     s = s.replace("_", " ")
-    # add space between camelCase boundaries (if any)
     s = re.sub(r"(?<=[a-z])(?=[A-Z])", " ", s)
-    # if it's all lowercase with no spaces (e.g., 'chiefexecutiveofficer'), try to split on known role words
-    # fallback: Title Case the whole thing
     s = " ".join(s.split())
     return s.title()
 
@@ -56,7 +55,6 @@ def nice_from_key(key: str) -> str:
 # Load BLS label map
 # ----------------------------
 bls_df = pd.read_csv(BLS_BASELINES)
-# Normalize key column
 bls_df["genai_bias_search_term"] = bls_df["genai_bias_search_term"].astype(str).str.strip()
 bls_df["Occupation"] = bls_df["Occupation"].astype(str).str.strip()
 LABEL_MAP = dict(zip(bls_df["genai_bias_search_term"], bls_df["Occupation"]))
@@ -71,10 +69,9 @@ for model_key, file_path in MODEL_FILES.items():
     if missing:
         raise ValueError(f"{file_path} missing columns: {missing}")
 
-    # Keep only needed diffs (races). Store occ_key (the genai_bias_search_term)
     subset = df[["occupation", "diff_p_white", "diff_p_black", "diff_p_asian", "diff_p_hispanic"]].copy()
-    subset["occ_key"] = subset["occupation"].astype(str).str.strip()  # key for joins / ordering
-    subset["model"] = model_key  # internal key
+    subset["occ_key"] = subset["occupation"].astype(str).str.strip()
+    subset["model"] = model_key
 
     long = subset.melt(
         id_vars=["occ_key", "model"],
@@ -92,9 +89,7 @@ for model_key, file_path in MODEL_FILES.items():
     long["race"] = long["race_col"].map(race_map)
     long.drop(columns=["race_col"], inplace=True)
 
-    # Map internal key -> display name now
     long["model"] = long["model"].map(DISPLAY_NAMES)
-
     frames.append(long)
 
 all_long = pd.concat(frames, ignore_index=True)
@@ -103,7 +98,6 @@ all_long = all_long[all_long["race"].isin(RACES)].copy()
 # ----------------------------
 # Occupation label mapping
 # ----------------------------
-# Ordered list of the 41 occupations, aligned with genai_bias_search_term order
 OCCUPATION_LABELS = [
     "administrative assistant",
     "author",
@@ -148,44 +142,29 @@ OCCUPATION_LABELS = [
     "welder",
 ]
 
-
-# Make a dict: {genai_bias_search_term: cleaned name}
-# Assumes the model CSVs include exactly these 41 occ_keys in the same order
 clean_label_map = {}
 for key, nice in zip(sorted(all_long["occ_key"].unique()), OCCUPATION_LABELS):
-    clean_label_map[key] = nice.title()  # Title Case for display
+    clean_label_map[key] = nice.title()
 
-print(clean_label_map)
-# Ordering: by White average across models, using occ_key, under -> over
+# Ordering: by White average across models, using occ_key
 white_only = all_long[all_long["race"] == "White"]
-white_means = (
-    white_only.groupby("occ_key")["diff"]
-    .mean()
-    .sort_values(ascending=True)
-)
+white_means = white_only.groupby("occ_key")["diff"].mean().sort_values(ascending=True)
 ordered_occ_keys = list(white_means.sort_values(ascending=False).index)
 
 # Averages for separate viz + top row
-avg_top = (
-    all_long.groupby(["race", "model"])["diff"]
-    .mean()
-    .reset_index()
-)
+avg_top = all_long.groupby(["race", "model"])["diff"].mean().reset_index()
 
 # Prepare wide tables by race (index = occ_key; columns = model)
 by_race = {}
-
 for race in RACES:
     sub = all_long[all_long["race"] == race]
     wide = sub.pivot_table(index="occ_key", columns="model", values="diff", aggfunc="mean")
-    # Reindex by ordered keys and ensure columns in display order
     wide = wide.reindex(ordered_occ_keys)
     for m in DISPLAY_ORDER:
         if m not in wide.columns:
             wide[m] = np.nan
     wide = wide[DISPLAY_ORDER]
 
-    # Build the "Average" row with a safe key unlikely to collide
     avg_row = (
         avg_top[avg_top["race"] == race]
         .set_index("model")["diff"]
@@ -193,7 +172,6 @@ for race in RACES:
         .rename("__AVG__")
         .to_frame().T
     )
-
     wide_with_top = pd.concat([avg_row, wide], axis=0)
     by_race[race] = wide_with_top
 
@@ -206,16 +184,14 @@ def smart_offsets(values_dict, tol=3.0, base_jitter=0.18):
     for i, k in enumerate(keys):
         if k in used:
             continue
-        group = [k]
-        used.add(k)
+        group = [k]; used.add(k)
         for j in range(i + 1, len(keys)):
             k2 = keys[j]
             if k2 in used:
                 continue
             xv, xw = values_dict[k], values_dict[k2]
             if pd.notna(xv) and pd.notna(xw) and abs(xv - xw) <= tol:
-                group.append(k2)
-                used.add(k2)
+                group.append(k2); used.add(k2)
         groups.append(group)
 
     offsets = {k: 0.0 for k in keys}
@@ -229,7 +205,7 @@ def smart_offsets(values_dict, tol=3.0, base_jitter=0.18):
     return offsets
 
 # ----------------------------
-# MAIN FIGURE (Average at TOP)
+# MAIN FIGURE (Average at TOP) + CAPTURE PLOTTED DATA
 # ----------------------------
 fig, axes = plt.subplots(1, 4, figsize=(20, 18), sharey=True)
 
@@ -246,15 +222,16 @@ colors  = {
     "Mistral-medium":  "#d62728",
 }
 
+# Will store every point rendered in the main figure
+full_points_rows = []
+
 for ax, race in zip(axes, RACES):
     wide = by_race[race]  # index: ["__AVG__", *occ_keys]
-    # Build plotting keys & labels
     ykeys   = ["__AVG__"] + [k for k in wide.index if k != "__AVG__"]
     ylabels = ["Average"] + [clean_label_map[k] for k in ordered_occ_keys]
 
     # Ensure data aligned to keys
     wide = wide.reindex(ykeys)
-
     y = np.arange(len(ykeys))
 
     # Axes / scales
@@ -263,25 +240,24 @@ for ax, race in zip(axes, RACES):
     ax.set_title(race, fontsize=14, pad=8)
     ax.set_yticks(y)
     ax.set_yticklabels(ylabels, fontsize=9)
-    # Force Average at top
-    ax.set_ylim(len(y) - 0.5, -0.5)
+    ax.set_ylim(len(y) - 0.5, -0.5)  # Average at top
 
-    # Bold the "Average" tick
-    for tick in ax.yaxis.get_ticklabels():
-        if tick.get_text() == "Average":
-            tick.set_fontweight("bold")
-
-    # Plot with smart jitter
     for yi, key in enumerate(ykeys):
         row_vals = {m: float(wide.loc[key, m]) if pd.notna(wide.loc[key, m]) else np.nan
                     for m in DISPLAY_ORDER}
         offsets = smart_offsets(row_vals, tol=3.0, base_jitter=0.18)
+
         for m in DISPLAY_ORDER:
-            if pd.isna(row_vals[m]):
+            val = row_vals[m]
+            if pd.isna(val):
                 continue
+            y_off = offsets[m]
+            y_pos = yi + y_off
+
+            # Draw the point
             ax.scatter(
-                row_vals[m],
-                yi + offsets[m],
+                val,
+                y_pos,
                 marker=markers[m],
                 s=55 if key == "__AVG__" else 42,
                 color=colors[m],
@@ -291,7 +267,21 @@ for ax, race in zip(axes, RACES):
                 label=m if (race == "White" and key == "__AVG__") else None
             )
 
-    # Faint separator under Average
+            # Record the point (for CSV)
+            full_points_rows.append({
+                "race": race,
+                "is_average": (key == "__AVG__"),
+                "occ_key": key,
+                "occupation": "Average" if key == "__AVG__" else clean_label_map.get(key, nice_from_key(key)),
+                "y_index": yi,
+                "y_label": "Average" if key == "__AVG__" else clean_label_map.get(key, nice_from_key(key)),
+                "model": m,
+                "diff": val,                     # x on the plot
+                "jitter_offset": y_off,          # vertical jitter applied
+                "x": val,                        # alias for clarity
+                "y": y_pos                       # final plotted y position
+            })
+
     ax.axhline(0.5, color="gray", linestyle="--", linewidth=0.8, alpha=0.55)
     ax.grid(axis="x", linestyle=":", linewidth=0.8, alpha=0.7)
 
@@ -304,13 +294,19 @@ handles, labels = axes[0].get_legend_handles_labels()
 fig.legend(handles, labels, title="Model", loc="upper left", bbox_to_anchor=(0.01, 0.955), frameon=True)
 
 plt.tight_layout(rect=[0.03, 0.08, 0.98, 0.93])
-plt.savefig(OUTPUT_PDF_FULL, bbox_inches="tight")  # dpi not needed for vector PDF
+plt.savefig(OUTPUT_PDF_FULL, bbox_inches="tight")
 print(f"Saved figure: {Path(OUTPUT_PDF_FULL).resolve()}")
 
+# Write plotted data for the main figure
+full_points_df = pd.DataFrame(full_points_rows)
+full_points_df.to_csv(OUTPUT_CSV_FULL, index=False)
+print(f"Saved plotted points CSV: {Path(OUTPUT_CSV_FULL).resolve()}")
+
 # ----------------------------
-# SEPARATE FIGURE: AVERAGES ONLY
+# SEPARATE FIGURE: AVERAGES ONLY + CAPTURE DATA
 # ----------------------------
 fig2, axes2 = plt.subplots(1, 4, figsize=(16, 4), sharey=True)
+avg_points_rows = []
 
 for ax, race in zip(axes2, RACES):
     row = by_race[race].loc["__AVG__"].reindex(DISPLAY_ORDER)
@@ -325,6 +321,8 @@ for ax, race in zip(axes2, RACES):
         val = row[m]
         if pd.isna(val):
             continue
+
+        # Plot point
         ax.scatter(
             val, 0,
             marker=markers[m],
@@ -335,16 +333,31 @@ for ax, race in zip(axes2, RACES):
             zorder=3,
             label=m if race == "White" else None
         )
+
+        # Record for CSV
+        avg_points_rows.append({
+            "race": race,
+            "model": m,
+            "is_average": True,
+            "diff": float(val),
+            "x": float(val),
+            "y": 0.0,
+            "y_label": "Average"
+        })
+
     ax.grid(axis="x", linestyle=":", linewidth=0.8, alpha=0.7)
 
-# Title + shared x-label
 fig2.suptitle("Racial Representation Across 41 Occupations — Averages Only", fontsize=16, fontweight="bold", y=1.05)
 fig2.supxlabel("Difference from BLS (percentage-point difference)", fontsize=12, y=0.02)
 
-# Single legend top-left
 handles2, labels2 = axes2[0].get_legend_handles_labels()
 fig2.legend(handles2, labels2, title="Model", loc="upper left", bbox_to_anchor=(0.01, 1.02), frameon=True, fontsize=9)
 
 plt.tight_layout()
 plt.savefig(OUTPUT_PDF_AVG, bbox_inches="tight")
 print(f"Saved figure: {Path(OUTPUT_PDF_AVG).resolve()}")
+
+# Write averages-only plotted data CSV
+avg_points_df = pd.DataFrame(avg_points_rows)
+avg_points_df.to_csv(OUTPUT_CSV_AVG, index=False)
+print(f"Saved averages-only points CSV: {Path(OUTPUT_CSV_AVG).resolve()}")
