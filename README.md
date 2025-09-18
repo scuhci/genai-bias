@@ -12,12 +12,20 @@ Representational Bias in AI Text-Generation: Race and Gender Across Occupations 
 
 Further details about the contents of these folders (and their subfolders) can be found within their respective `README.md` files.
 
-### Quick Links to Published Data
-Our published regression tables can be found [here](analysis/logistic-regression-scripts/results/published-csvs).
+### Quick Links to Key Supplementary Data
 
-Here are our regression plots [by individual model](analysis/logistic-regression-scripts/results/plots-by-model) and [averaged across all models](analysis/logistic-regression-scripts/results/plots_averaged).
+Regression results (pooled across all models) for all methods (raw, trimmed, and robust regression). As the primary specification, only robust regression results are reported in the published paper:
+https://anonymous.4open.science/r/repbias-CHI26/analysis/logistic-regression-scripts/results/published-csvs/regression_results_averaged_with_methods.csv
 
-Our published dotplots can be found [here](analysis/dotplots/results).
+Regression results (by model) for all methods (raw, trimmed, and robust regression):
+https://anonymous.4open.science/r/repbias-CHI26/analysis/logistic-regression-scripts/results/published-csvs/regression_results_all_models_with_methods.csv
+
+Our published dotplots can be found at `analysis/dotplots/results`.
+
+Here are our regression plots...
+- by individual model: `analysis/logistic-regression-scripts/results/plots-by-model`
+- averaged across all models: `analysis/logistic-regression-scripts/results/plots_averaged`
+
 
 ### System & User Prompts
 
