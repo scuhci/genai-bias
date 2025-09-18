@@ -14,11 +14,10 @@ Further details about the contents of these folders (and their subfolders) can b
 
 ### Quick Links to Key Supplementary Data
 
-Regression results (pooled across all models) for all methods (raw, trimmed, and robust regression). As the primary specification, only robust regression results are reported in the published paper:
-https://anonymous.4open.science/r/repbias-CHI26/analysis/logistic-regression-scripts/results/published-csvs/regression_results_averaged_with_methods.csv
+Regression results (pooled across all models) for all methods (raw, trimmed, and robust regression). As the primary specification, only robust regression results are reported in the published paper: [https://anonymous.4open.science/r/repbias-CHI26/analysis/logistic-regression-scripts/results/published-csvs/regression_results_averaged_with_methods.csv](https://anonymous.4open.science/r/repbias-CHI26/analysis/logistic-regression-scripts/results/published-csvs/regression_results_averaged_with_methods.csv)
 
-Regression results (by model) for all methods (raw, trimmed, and robust regression):
-https://anonymous.4open.science/r/repbias-CHI26/analysis/logistic-regression-scripts/results/published-csvs/regression_results_all_models_with_methods.csv
+Regression results (by model) for all methods (raw, trimmed, and robust regression): 
+[https://anonymous.4open.science/r/repbias-CHI26/analysis/logistic-regression-scripts/results/published-csvs/regression_results_all_models_with_methods.csv]([https://anonymous.4open.science/r/repbias-CHI26/analysis/logistic-regression-scripts/results/published-csvs/regression_results_all_models_with_methods.csv)
 
 Our published dotplots can be found at `analysis/dotplots/results`.
 
