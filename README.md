@@ -13,11 +13,11 @@ Representational Bias in AI Text-Generation: Race and Gender Across Occupations 
 Further details about the contents of these folders (and their subfolders) can be found within their respective `README.md` files.
 
 ### Quick Links to Published Data
-Our published regression tables can be found [here](analysis\logistic-regression-scripts\results\published-csvs).
+Our published regression tables can be found [here](analysis/logistic-regression-scripts/results/published-csvs).
 
-Here are our regression plots [by individual model](analysis\logistic-regression-scripts\results\plots-by-model) and [averaged across all models](analysis\logistic-regression-scripts\results\plots_averaged).
+Here are our regression plots [by individual model](analysis/logistic-regression-scripts/results/plots-by-model) and [averaged across all models](analysis/logistic-regression-scripts/results/plots_averaged).
 
-Our published dotplots can be found [here](analysis\dotplots\results).
+Our published dotplots can be found [here](analysis/dotplots/results).
 
 ### System & User Prompts
 
