@@ -52,3 +52,19 @@ In response, you will output a json object containing the following information.
 ```
 Generate a profile for: <CAREER TERM>
 ```
+
+## Team
+
+This project was made with love at the [Santa Clara University HCI Lab](https://scuhci.com/) by a student-led team of researchers. 
+
+**Faculty Advisor** :bulb:
+- Professor Kai Lukoff | [Website](https://kailukoff.com/)
+
+**Project Lead** ✏️
+- Ilona van der Linden | [LinkedIn](https://www.linkedin.com/in/lonavdlin/) | [Email](mailto:lonavdlin@gmail.com)
+
+**Research Team** 📖
+- Arnav Dixit | [LinkedIn](https://www.linkedin.com/in/arnav-dixit/) | [Email](mailto:dixitarnav2@gmail.com)
+- Smruthi Danda | [LinkedIn](https://www.linkedin.com/in/smruthi-danda/) 
+- Aadi Sudan | [LinkedIn](https://www.linkedin.com/in/aadi-sudan-66b183204/) | [Email](mailto:aadisudan123@gmail.com)
+- Sahana Kumar | [LinkedIn](https://www.linkedin.com/in/sahana-kumar-7501401b0/) | [Email](mailto:sahana@anands.net)
