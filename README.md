@@ -71,7 +71,7 @@ This project was made with love at the [Santa Clara University HCI Lab](https://
 - Smruthi Danda | [LinkedIn](https://www.linkedin.com/in/smruthi-danda/)
 - Aadi Sudan | [LinkedIn](https://www.linkedin.com/in/aadi-sudan-66b183204/) | [Email](mailto:aadisudan123@gmail.com)
 - Sahana Kumar | [LinkedIn](https://www.linkedin.com/in/sahana-kumar-7501401b0/) | [Email](mailto:sahana@anands.net)
-- Julianna Dietrich | [Email](mailto:jdietrich@scu.edu)
+- Julianna Dietrich | [LinkedIn](https://www.linkedin.com/in/julianna-dietrich-1252481a6/) | [Email](mailto:jdietrich@scu.edu)
 
 
 ## Citation
