@@ -60,8 +60,8 @@ Generate a profile for: <CAREER TERM>
 This project was made with love at the [Santa Clara University HCI Lab](https://scuhci.com/) by a student-led team of researchers.
 
 **Faculty Advisors** :bulb:
-- Professor Kai Lukoff | [Website](https://kailukoff.com/) | [Email](mailto:klukoff@scu.edu)
-- Professor David C. Anastasiu | [Website](https://davidanastasiu.net/) | [Email](mailto:danastasiu@scu.edu)
+- Professor Kai Lukoff | [Website](https://kailukoff.com/) | [LinkedIn](https://www.linkedin.com/in/klukoff/) | [Email](mailto:klukoff@scu.edu)
+- Professor David C. Anastasiu | [Website](https://davidanastasiu.net/) | [LinkedIn](https://www.linkedin.com/in/davidanastasiu/) | [Email](mailto:danastasiu@scu.edu)
 
 **Project Lead** :pencil2:
 - Ilona van der Linden | [LinkedIn](https://www.linkedin.com/in/lonavdlin/) | [Email](mailto:lonavdlin@gmail.com)
