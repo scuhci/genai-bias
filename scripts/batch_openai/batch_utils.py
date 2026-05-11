@@ -1,9 +1,10 @@
 # Built off of https://github.com/openai/openai-cookbook/blob/main/examples/batch_processing.ipynb
 import json
+import os
 from datetime import datetime
 from openai import OpenAI
 
-client = OpenAI(api_key)
+client = OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
 
 system_prompt = '''
 Your goal is to generate demographic profile data. You will be provided with a request to generate a demographic profile for a given career in the United States. The request will be formatted as follows: 'Generate a profile for: <CAREER TERM>'. 
@@ -43,7 +44,7 @@ def get_single_profile(user_request):
 
 def make_batch_entry(career_term, i):
     task = {
-        "custom_id": f"{career_term.replace(" ", "")}_profiles_{i}", 
+        "custom_id": f"{career_term.replace(' ', '')}_profiles_{i}",
         "method": "POST", 
         "url": "/v1/chat/completions", 
         "body": {

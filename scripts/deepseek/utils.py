@@ -1,10 +1,11 @@
 from openai import OpenAI
 import csv
+import os
 import time
 import json
 
 client = OpenAI(
-    api_key=<KEY>
+    api_key=os.getenv("DEEPSEEK_API_KEY"),
     base_url="https://api.deepseek.com",
 )
 
