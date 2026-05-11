@@ -2,8 +2,7 @@ library(ggplot2)
 library(dplyr)
 library(scales)
 
-# ── Set working directory & output folder ────────────────────────────────────
-setwd("C:/Users/Lonalynn/Desktop/SCU/HCI/genai-bias/analysis/salary")
+# ── Output folder (run this script from analysis/salary/) ────────────────────
 dir.create("regressions/gender", showWarnings = FALSE, recursive = TRUE)
 
 # ── Core plotting function ────────────────────────────────────────────────────

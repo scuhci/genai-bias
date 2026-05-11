@@ -1,6 +1,6 @@
 library(visreg)
 
-setwd("C:/Users/Lonalynn/Desktop/SCU/HCI/genai-bias/analysis/logistic-regression-scripts/scripts/individual-scripts/")
+# Run this script from analysis/logistic-regression-scripts/scripts/individual-scripts/
 proportions <- read.csv("../../percent-results/results_vs_BLS/averaged_differences_vs_BLS.csv")
 
 m_asian.stereotyped <- glm(

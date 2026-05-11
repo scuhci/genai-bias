@@ -12,7 +12,7 @@ library(stats)
 # ----------------------------
 # Configure: where the 4 CSVs live
 # ----------------------------
-csv_dir <- "analysis/logistic-regression-scripts/results/csvs"
+csv_dir <- "analysis/logistic-regression-scripts/results/preprocessed-csvs"
 files <- list.files(csv_dir, pattern = "\\.csv$", full.names = TRUE)
 print(files)
 stopifnot(length(files) >= 1)

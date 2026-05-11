@@ -1,9 +1,6 @@
 import json
 import batch_utils
 
-# ./venv/scripts/activate
-# /home/lonalynn/HCI/genai-bias/.venv/bin/activate
-# source .venv/bin/activate
 
 def main():
     occupations = [

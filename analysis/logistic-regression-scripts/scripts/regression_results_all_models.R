@@ -21,7 +21,7 @@ library(tools)
 # ----------------------------
 # Input CSVs & output dir
 # ----------------------------
-csv_dir <- "analysis/logistic-regression-scripts/results/csvs"
+csv_dir <- "analysis/logistic-regression-scripts/results/preprocessed-csvs"
 files <- list.files(csv_dir, pattern = "\\.csv$", full.names = TRUE)
 print(files)
 stopifnot(length(files) >= 1)

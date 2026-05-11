@@ -2,7 +2,7 @@ library(ggplot2)
 library(dplyr)
 library(scales)
 
-setwd("C:/Users/Lonalynn/Desktop/SCU/HCI/genai-bias/analysis/salary")
+# Run this script from analysis/salary/
 df <- read.csv("results/combined_models_comparison.csv")
 
 plot_income <- function(df, model_col, model_name, out_pdf) {

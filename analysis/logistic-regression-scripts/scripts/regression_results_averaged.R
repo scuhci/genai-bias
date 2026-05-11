@@ -17,7 +17,7 @@ library(tools)
 # ----------------------------
 # Load data (single averaged file)
 # ----------------------------
-in_csv <- "analysis/logistic-regression-scripts/results/csvs/averaged_logreg.csv"
+in_csv <- "analysis/logistic-regression-scripts/results/preprocessed-csvs/averaged_logreg.csv"
 proportions <- suppressMessages(read_csv(in_csv, show_col_types = FALSE))
 
 # ----------------------------

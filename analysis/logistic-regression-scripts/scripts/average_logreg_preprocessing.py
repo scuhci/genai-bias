@@ -4,7 +4,7 @@ from pathlib import Path
 # ----------------------------
 # CONFIG
 # ----------------------------
-DATA_DIR = Path("results/csvs")  # update this to your directory
+DATA_DIR = Path("results/preprocessed-csvs")  # update this to your directory
 OUTPUT_FILE = "averaged_logreg.csv"
 
 # ----------------------------
