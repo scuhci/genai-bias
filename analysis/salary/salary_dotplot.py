@@ -217,7 +217,21 @@ for yi,key in enumerate(ykeys):
         m:wide.loc[key,m] for m in DISPLAY_ORDER
     }
 
-    offsets = smart_offsets(row_vals)
+    # Use clipped plot positions for offset clustering so off-chart points
+    # spread out vertically instead of stacking at the same edge.
+    XLIM_MAX_OFFSET = 100
+    XLIM_MIN_OFFSET = -100
+    clip_vals = {}
+    for _m, _v in row_vals.items():
+        if pd.isna(_v):
+            clip_vals[_m] = _v
+        elif _v > XLIM_MAX_OFFSET:
+            clip_vals[_m] = XLIM_MAX_OFFSET
+        elif _v < XLIM_MIN_OFFSET:
+            clip_vals[_m] = XLIM_MIN_OFFSET
+        else:
+            clip_vals[_m] = _v
+    offsets = smart_offsets(clip_vals)
 
     for m in DISPLAY_ORDER:
 
@@ -228,21 +242,61 @@ for yi,key in enumerate(ykeys):
 
         y_pos = yi + offsets[m]
 
-        ax.scatter(
-            val,
-            y_pos,
-            marker=markers[m],
-            s=60 if key=="__AVG__" else 42,
-            color=colors[m],
-            edgecolor="black",
-            linewidths=0.4,
-            label=m if key=="__AVG__" else None
-        )
+        # Clip extreme values to the visible x-range and annotate the true value at the edge.
+        XLIM_MAX = 100
+        XLIM_MIN = -100
+        clipped = False
+        if val > XLIM_MAX:
+            plot_val = XLIM_MAX
+            clipped = True
+        elif val < XLIM_MIN:
+            plot_val = XLIM_MIN
+            clipped = True
+        else:
+            plot_val = val
+
+        if clipped:
+            # Draw a right-pointing triangle marker at the edge, then a numeric label just inside.
+            edge_marker = ">" if val > 0 else "<"
+            ax.scatter(
+                plot_val,
+                y_pos,
+                marker=edge_marker,
+                s=80 if key == "__AVG__" else 60,
+                color=colors[m],
+                edgecolor="black",
+                linewidths=0.4,
+                label=m if key == "__AVG__" else None,
+                clip_on=False,
+            )
+            ax.annotate(
+                f"+{val:.0f}%" if val > 0 else f"{val:.0f}%",
+                xy=(plot_val, y_pos),
+                xytext=(-4 if val > 0 else 4, 0),
+                textcoords="offset points",
+                ha="right" if val > 0 else "left",
+                va="center",
+                fontsize=7,
+                color=colors[m],
+                fontweight="bold",
+            )
+        else:
+            ax.scatter(
+                plot_val,
+                y_pos,
+                marker=markers[m],
+                s=60 if key == "__AVG__" else 42,
+                color=colors[m],
+                edgecolor="black",
+                linewidths=0.4,
+                label=m if key == "__AVG__" else None,
+            )
 
         points.append({
             "occupation": "Average" if key=="__AVG__" else nice_from_key(key),
             "model": m,
-            "percent_difference": val
+            "percent_difference": val,
+            "clipped_to_edge": clipped,
         })
 
 ax.set_yticks(y)
