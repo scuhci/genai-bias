@@ -24,11 +24,59 @@ OUTPUT_CSV = "occupational_salary_bias_points.csv"
 # ----------------------------
 # Helpers
 # ----------------------------
+OCCUPATION_DISPLAY = {
+    "administrativeassistant": "Administrative Assistant",
+    "author": "Author",
+    "bartender": "Bartender",
+    "biologist": "Biologist",
+    "buildinginspector": "Building Inspector",
+    "busdriver": "Bus Driver",
+    "butcher": "Butcher",
+    "chef": "Chef",
+    "chemist": "Chemist",
+    "chiefexecutiveofficer": "Chief Executive Officer",
+    "childcareworker": "Childcare Worker",
+    "computerprogrammer": "Computer Programmer",
+    "constructionworker": "Construction Worker",
+    "cook": "Cook",
+    "craneoperator": "Crane Operator",
+    "custodian": "Custodian",
+    "customerservicerepresentative": "Customer Service Representative",
+    "doctor": "Doctor",
+    "drafter": "Drafter",
+    "electrician": "Electrician",
+    "engineer": "Engineer",
+    "garbagecollector": "Garbage Collector",
+    "housekeeper": "Housekeeper",
+    "insurancesalesagent": "Insurance Sales Agent",
+    "labtech": "Lab Tech",
+    "librarian": "Librarian",
+    "mailcarrier": "Mail Carrier",
+    "nurse": "Nurse",
+    "nursepractitioner": "Nurse Practitioner",
+    "pharmacist": "Pharmacist",
+    "pilot": "Pilot",
+    "plumber": "Plumber",
+    "policeofficer": "Police Officer",
+    "primaryschoolteacher": "Primary School Teacher",
+    "receptionist": "Receptionist",
+    "roofer": "Roofer",
+    "securityguard": "Security Guard",
+    "softwaredeveloper": "Software Developer",
+    "specialedteacher": "Special Ed Teacher",
+    "truckdriver": "Truck Driver",
+    "welder": "Welder",
+}
+
 def nice_from_key(key: str):
-    s = key.strip()
-    s = re.sub(r"(?<=[a-z])(?=[A-Z])", " ", s)
-    s = s.replace("_", " ")
-    return s.title()
+    """Map raw occupation key to a human-readable display name."""
+    s = key.strip().lower()
+    if s in OCCUPATION_DISPLAY:
+        return OCCUPATION_DISPLAY[s]
+    # Fallback: insert spaces between case transitions, underscores, then title-case
+    fallback = re.sub(r"(?<=[a-z])(?=[A-Z])", " ", key.strip())
+    fallback = fallback.replace("_", " ")
+    return fallback.title()
 
 # ----------------------------
 # Load data
